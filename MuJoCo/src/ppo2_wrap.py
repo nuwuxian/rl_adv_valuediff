@@ -455,7 +455,13 @@ class MyPPO2(ActorCriticRLModel):
         print('*********************************************')
         print('learning rate schedule: %s' % self.lr_schedule)
         print('oppo coefficient schedule: %s' % self.coef_opp_schedule)
+        print('diff coefficient schedule: %s' % self.coef_abs_schedule)
         print('adv coefficient schedule: %s' % self.coef_adv_schedule)
+
+        print('learning rate coefficient initial vaule: %f' % self.learning_rate)
+        print('oppo coefficient initial vaule: %.3f' % self.coef_opp_init)
+        print('diff coefficient initial vaule: %.3f' % self.coef_abs_init)
+        print('adv coefficient initial vaule: %.3f' % self.coef_adv_init)
         print('*********************************************')
 
         self.learning_rate = get_schedule_fn(self.learning_rate, schedule=self.lr_schedule)
