@@ -23,30 +23,30 @@ parser.add_argument("--env", type=int, default=5)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
-parser.add_argument("--n_games", type=int, default=1) # N_GAME = 8
+parser.add_argument("--n_games", type=int, default=4) # N_GAME = 8
 # which victim agent to use
 parser.add_argument("--vic_agt_id", type=int, default=3)
 
 # victim agent network
-parser.add_argument("--vic_net", type=str, default='MLP')
+parser.add_argument("--vic_net", type=str, default='LSTM')
 # adv agent network
 parser.add_argument("--adv_net", type=str, default='MLP')
 
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='const')
 # number of steps / lstm length should be small
-parser.add_argument("--nsteps", type=int, default=2048)
+parser.add_argument("--nsteps", type=int, default=200)
 
 # victim loss coefficient.
-parser.add_argument("--vic_coef_init", type=int, default=-1)
+parser.add_argument("--vic_coef_init", type=int, default=1) # positive
 # victim loss schedule
 parser.add_argument("--vic_coef_sch", type=str, default='const')
 # adv loss coefficient.
-parser.add_argument("--adv_coef_init", type=int, default=1)
+parser.add_argument("--adv_coef_init", type=int, default=-1) # negative
 # adv loss schedule
 parser.add_argument("--adv_coef_sch", type=str, default='const')
 # diff loss coefficient.
-parser.add_argument("--diff_coef_init", type=int, default=-1)
+parser.add_argument("--diff_coef_init", type=int, default=-1) # negative
 # diff loss schedule
 parser.add_argument("--diff_coef_sch", type=str, default='const')
 
@@ -73,6 +73,8 @@ REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 0.1}, 'sparse': {'rewar
 # reward discount factor
 GAMMA = 0.99
 
+# use victim observation
+USE_VIC = True
 # victim agent value network
 VIC_NET = args.vic_net
 # adv agent network
@@ -110,7 +112,7 @@ PRETRAIN_TEMPLETE = "../agent-zoo/%s-pretrained-expert-1000-1000-1e-03.pkl"
 SAVE_DIR = '../agent-zoo/'+ GAME_ENV.split('/')[1] + '_' + str(VIC_AGT_ID)+'_' + ADV_NET + '_' + VIC_NET + '_' + \
            str(COEF_VIC_INIT) + '_' +  COEF_VIC_SCHEDULE + '_' + \
            str(COEF_ADV_INIT) + '_' +  COEF_ADV_SCHEDULE + '_' + \
-           str(COEF_DIFF_INIT) + '_' + COEF_DIFF_SCHEDULE
+           str(COEF_DIFF_INIT) + '_' + COEF_DIFF_SCHEDULE + '_' + str(USE_VIC)
 EXP_NAME = str(GAME_SEED)
 
 # choose the victim agent.
@@ -119,7 +121,7 @@ if 'You' in GAME_ENV.split('/')[1]:
 else:
     REVERSE = False
 
-def Adv_train(env, total_timesteps, log_interval, callback_key, callback_mul, logger, seed):
+def Adv_train(env, total_timesteps, log_interval, callback_key, callback_mul, logger, seed, use_victim_ob):
     log_callback = lambda logger, locals, globals: env.log_callback(logger)
     last_log = 0
 
@@ -131,7 +133,8 @@ def Adv_train(env, total_timesteps, log_interval, callback_key, callback_mul, lo
             last_log = step
         return True
 
-    model.learn(total_timesteps=total_timesteps, log_interval=1, callback=callback, seed=seed)
+    model.learn(total_timesteps=total_timesteps, log_interval=1, callback=callback, seed=seed,
+                use_victim_ob=use_victim_ob)
 
 if __name__=="__main__":
 
@@ -191,5 +194,6 @@ if __name__=="__main__":
                        n_steps=NSTEPS, gamma=GAMMA, is_mlp=IS_MLP,
                        env_name=env_name, opp_value=vic_value)
 
-        Adv_train(venv, TRAINING_ITER, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED)
+        Adv_train(venv, TRAINING_ITER, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
+                  use_victim_ob=USE_VIC)
         model.save(os.path.join(out_dir, env_name.split('/')[1]))

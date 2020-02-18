@@ -196,9 +196,6 @@ class MyPPO2(ActorCriticRLModel):
                                                     self.n_envs // self.nminibatches, self.n_steps,
                                                     n_batch_train)
 
-
-                ###################### why two models. here,
-
                 with tf.variable_scope("loss", reuse=False):
                     self.action_ph = train_model.pdtype.sample_placeholder([None], name="action_ph")
 
@@ -241,6 +238,7 @@ class MyPPO2(ActorCriticRLModel):
                     opp_vf_losses2 = tf.square(opp_vpredclipped - self.opp_rewards_ph)
                     self.opp_vf_loss = .5 * tf.reduce_mean(tf.maximum(opp_vf_losses1, opp_vf_losses2))
 
+                    # diff value function loss
                     abs_vpred = vtrain1_model.value_flat
                     abs_vpredclipped = self.old_abs_vpred_ph + tf.clip_by_value(
                         vtrain1_model.value_flat - self.old_abs_vpred_ph, - self.clip_range_ph, self.clip_range_ph)
@@ -248,13 +246,14 @@ class MyPPO2(ActorCriticRLModel):
                     abs_vf_losses2 = tf.square(abs_vpredclipped - self.abs_rewards_ph)
                     self.abs_vf_loss = .5 * tf.reduce_mean(tf.maximum(abs_vf_losses1, abs_vf_losses2))
 
+                    # ratio
                     ratio = tf.exp(self.old_neglog_pac_ph - neglogpac)
 
-                    # todo policy loss
-                    # todo add another loss
-                    pg_losses = (self.coef_abs_ph*self.abs_advs_ph+self.coef_opp_ph*self.opp_advs_ph \
-                                 -self.coef_adv_ph*self.advs_ph) * ratio
-                    pg_losses2 = (self.coef_abs_ph*self.abs_advs_ph+self.coef_opp_ph*self.opp_advs_ph-self.coef_adv_ph*self.advs_ph) * \
+                    # ppo training loss
+                    pg_losses = (self.coef_abs_ph*self.abs_advs_ph + self.coef_opp_ph*self.opp_advs_ph
+                                 + self.coef_adv_ph*self.advs_ph) * ratio
+                    pg_losses2 = (self.coef_abs_ph*self.abs_advs_ph + self.coef_opp_ph*self.opp_advs_ph
+                                  + self.coef_adv_ph*self.advs_ph) * \
                                  tf.clip_by_value(ratio, 1.0 - self.clip_range_ph, 1.0 + self.clip_range_ph)
 
                     # seperate the loss function
@@ -277,7 +276,7 @@ class MyPPO2(ActorCriticRLModel):
                     self.approxkl = .5 * tf.reduce_mean(tf.square(neglogpac - self.old_neglog_pac_ph))
                     self.clipfrac = tf.reduce_mean(tf.cast(tf.greater(tf.abs(ratio - 1.0),
                                                                       self.clip_range_ph), tf.float32))
-
+                    # final ppo loss
                     loss = self.pg_loss - self.entropy * self.ent_coef + self.vf_loss * self.vf_coef
 
                     tf.summary.scalar('entropy_loss', self.entropy)
@@ -360,7 +359,7 @@ class MyPPO2(ActorCriticRLModel):
                 self.summary = tf.summary.merge_all()
 
     def _train_step(self, learning_rate, cliprange, coef_opp, coef_adv, coef_abs, obs, returns, masks, actions, values, neglogpacs,
-                    opp_obs, opp_returns, opp_values, abs_returns, abs_values, update, writer, \
+                    opp_obs, opp_returns, opp_values, abs_returns, abs_values, update, writer,
                     states=None, opp_states=None, abs_states=None):
         """
         Training of PPO2 Algorithm
@@ -418,38 +417,39 @@ class MyPPO2(ActorCriticRLModel):
         else:
             update_fac = self.n_batch // self.nminibatches // self.noptepochs // self.n_steps + 1
 
-        if writer is not None:
-            # run loss backprop with summary, but once every 10 runs save the metadata (memory, compute time, ...)
-            if self.full_tensorboard_log and (1 + update) % 10 == 0:
-                run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-                run_metadata = tf.RunMetadata()
-                summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _, \
-                _, opp_vf_loss = self.sess.run(
-                    [self.summary, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train,
-                     self._train_value,
-                     self.opp_vf_loss],
-                    td_map, options=run_options, run_metadata=run_metadata)
-                writer.add_run_metadata(run_metadata, 'step%d' % (update * update_fac))
-            else:
-                summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _, \
-                _, opp_vf_loss = self.sess.run(
-                    [self.summary, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train,
-                     self._train_value,
-                     self.opp_vf_loss],
-                    td_map)
-
-            writer.add_summary(summary, (update * update_fac))
-        else:
-            policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _, \
-            _, opp_vf_loss, opp_pg_loss, adv_pg_loss, abs_pg_loss = self.sess.run(
-                [self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train,
-                 self._train_value, self.opp_vf_loss, self.opp_pg_loss, self.adv_pg_loss, self.abs_pg_loss], td_map)
+        assert (writer == None, print('only support none writer'))
+        # if writer is not None:
+        #     # run loss backprop with summary, but once every 10 runs save the metadata (memory, compute time, ...)
+        #     if self.full_tensorboard_log and (1 + update) % 10 == 0:
+        #         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        #         run_metadata = tf.RunMetadata()
+        #         summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _, \
+        #         _, opp_vf_loss = self.sess.run(
+        #             [self.summary, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train,
+        #              self._train_value,
+        #              self.opp_vf_loss],
+        #             td_map, options=run_options, run_metadata=run_metadata)
+        #         writer.add_run_metadata(run_metadata, 'step%d' % (update * update_fac))
+        #     else:
+        #         summary, policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _, \
+        #         _, opp_vf_loss = self.sess.run(
+        #             [self.summary, self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train,
+        #              self._train_value,
+        #              self.opp_vf_loss],
+        #             td_map)
+        #
+        #     writer.add_summary(summary, (update * update_fac))
+        # else:
+        policy_loss, value_loss, policy_entropy, approxkl, clipfrac, _, \
+        _, opp_vf_loss, opp_pg_loss, adv_pg_loss, abs_pg_loss = self.sess.run(
+            [self.pg_loss, self.vf_loss, self.entropy, self.approxkl, self.clipfrac, self._train,
+             self._train_value, self.opp_vf_loss, self.opp_pg_loss, self.adv_pg_loss, self.abs_pg_loss], td_map)
 
         return policy_loss, value_loss, policy_entropy, approxkl, clipfrac, \
                opp_vf_loss, opp_pg_loss, adv_pg_loss, abs_pg_loss
 
     def learn(self, total_timesteps, callback=None, seed=None, log_interval=1, tb_log_name="PPO2",
-              reset_num_timesteps=True):
+              reset_num_timesteps=True, use_victim_ob=False):
 
         # Transform to callable if needed
         print('*********************************************')
@@ -474,7 +474,7 @@ class MyPPO2(ActorCriticRLModel):
             self._setup_learn(seed)
             runner = Runner(env=self.env, model=self, n_steps=self.n_steps, gamma=self.gamma,
                             lam=self.lam, v_model=self.vact_model, v1_model=self.vact1_model,
-                            is_mlp=self.is_mlp)
+                            is_mlp=self.is_mlp, use_victim_ob=use_victim_ob)
 
             self.episode_reward = np.zeros((self.n_envs,))
 
@@ -517,7 +517,8 @@ class MyPPO2(ActorCriticRLModel):
                 cliprangenow = self.cliprange(0)
                 # true_reward is the reward without discount
                 obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward, opp_true_reward, \
-                abs_true_reward, opp_obs, opp_states, opp_returns, opp_values, abs_states, abs_returns, abs_values = runner.run()
+                abs_true_reward, opp_obs, opp_states, opp_returns, opp_values, abs_states, abs_returns, abs_values \
+                    = runner.run()
 
                 ep_info_buf.extend(ep_infos)
                 mb_loss_vals = []
@@ -618,6 +619,11 @@ class MyPPO2(ActorCriticRLModel):
                     logger.logkv("opp_returns", np.mean(opp_returns))
                     logger.logkv("abs_returns", np.mean(abs_returns))
 
+                    logger.logkv("learning_rate", np.mean(lr_now))
+                    logger.logkv("victim_loss_weight", np.mean(coef_opp_now))
+                    logger.logkv("adv_loss_weight", np.mean(coef_adv_now))
+                    logger.logkv("diff_loss_weight", np.mean(coef_abs_now))
+
                     logger.logkv("explained_variance", float(explained_var))
 
                     # print the attention weights
@@ -655,7 +661,7 @@ class MyPPO2(ActorCriticRLModel):
             "vf_coef": self.vf_coef,
             "ent_coef": self.ent_coef,
             "max_grad_norm": self.max_grad_norm,
-            "learning_rate": self.learning_rate,
+            "learning_rate_init": self.learning_rate,
             "lam": self.lam,
             "nminibatches": self.nminibatches,
             "noptepochs": self.noptepochs,
@@ -667,14 +673,12 @@ class MyPPO2(ActorCriticRLModel):
             "n_envs": self.n_envs,
             "_vectorize_action": self._vectorize_action,
             "policy_kwargs": self.policy_kwargs,
-            "hyper_weights": self.hyper_weights,
-            "black_box_att": self.black_box_att,
-            "use_explanation": self.use_explanation,
-            "masking_attention": self.masking_attention,
             "tensorboard_log": self.tensorboard_log,
-            # "env": self.env,
             "env_name": self.env_name,
             "model_saved_loc": self.model_saved_loc,
+            "vic_weight_init": self.coef_opp_init,
+            "adv_weight_init": self.coef_adv_init,
+            "diff_weight_init": self.coef_abs_init
         }
 
         params = self.sess.run(self.params)
@@ -725,7 +729,7 @@ class MyPPO2(ActorCriticRLModel):
 
 
 class Runner(AbstractEnvRunner):
-    def __init__(self, *, env, model, n_steps, gamma, lam, v_model, v1_model, is_mlp):
+    def __init__(self, *, env, model, n_steps, gamma, lam, v_model, v1_model, is_mlp, use_victim_ob):
         """
         A runner to learn the policy of an environment for a model
 
@@ -744,6 +748,7 @@ class Runner(AbstractEnvRunner):
 
         self.opp_states = v_model.initial_state
         self.abs_states = v1_model.initial_state
+        self.use_victim_ob = use_victim_ob
 
     def run(self):
         """
@@ -785,6 +790,7 @@ class Runner(AbstractEnvRunner):
             mb_neglogpacs.append(neglogpacs)
             mb_dones.append(self.dones)
             dones = self.dones.copy()
+            obs_adv = np.copy(self.obs)
 
             clipped_actions = actions
             # Clip the actions to avoid out of bound error
@@ -795,7 +801,13 @@ class Runner(AbstractEnvRunner):
             # get the opponent rewards and values
             mb_opp_rewards.append(self.env.get_attr('oppo_reward'))
             mb_abs_rewards.append(self.env.get_attr('abs_reward'))
-            obs_oppo = np.asarray(self.env.get_attr('oppo_ob').copy())
+
+            # use victim agent observation
+            if self.use_victim_ob:
+                obs_oppo = np.asarray(self.env.get_attr('oppo_ob').copy())
+            else:
+                obs_oppo = obs_adv
+
             mb_opp_obs.append(obs_oppo)
             values_oppo, self.opp_states = self.v_model.value(obs_oppo, self.opp_states, dones)
             values_abs, self.abs_states = self.v1_model.value(obs_oppo, self.abs_states, dones)
@@ -877,6 +889,7 @@ class Runner(AbstractEnvRunner):
 
         return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward, opp_true_reward, \
                abs_true_reward, mb_opp_obs, mb_opp_states, mb_opp_returns, mb_opp_values, mb_abs_states, mb_abs_returns, mb_abs_values
+
 
 def get_schedule_fn(value_schedule, schedule):
     """
