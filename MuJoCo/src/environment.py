@@ -229,9 +229,11 @@ class Multi2SingleEnv(Wrapper):
 
 def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, reverse=True):
     if 'You' in env_name.split('/')[1]:
-        tag = 1
-    else:
         tag = 2
+    # elif 'Kick' in env_name.split('/')[1]:
+    #     tag = 1
+    else:
+        tag = 1
 
     env = gym.make(env_name)
     zoo_agent = make_zoo_agent(env_name, env.observation_space.spaces[1], env.action_space.spaces[1],

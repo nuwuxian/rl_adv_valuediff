@@ -23,7 +23,7 @@ parser.add_argument("--env", type=int, default=5)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
-parser.add_argument("--n_games", type=int, default=4) # N_GAME = 8
+parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 # which victim agent to use
 parser.add_argument("--vic_agt_id", type=int, default=3)
 
@@ -35,7 +35,7 @@ parser.add_argument("--adv_net", type=str, default='MLP')
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='const')
 # number of steps / lstm length should be small
-parser.add_argument("--nsteps", type=int, default=200)
+parser.add_argument("--nsteps", type=int, default=2048)
 
 # victim loss coefficient.
 parser.add_argument("--vic_coef_init", type=int, default=1) # positive
@@ -46,7 +46,7 @@ parser.add_argument("--adv_coef_init", type=int, default=-1) # negative
 # adv loss schedule
 parser.add_argument("--adv_coef_sch", type=str, default='const')
 # diff loss coefficient.
-parser.add_argument("--diff_coef_init", type=int, default=-1) # negative
+parser.add_argument("--diff_coef_init", type=int, default=0) # negative
 # diff loss schedule
 parser.add_argument("--diff_coef_sch", type=str, default='const')
 
@@ -74,7 +74,7 @@ REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 0.1}, 'sparse': {'rewar
 GAMMA = 0.99
 
 # use victim observation
-USE_VIC = True
+USE_VIC = False
 # victim agent value network
 VIC_NET = args.vic_net
 # adv agent network
