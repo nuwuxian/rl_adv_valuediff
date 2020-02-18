@@ -114,6 +114,7 @@ def make_mixed_agent(agent1, agent2, ratio=0.005):
     else:
         return MixedAgent(agent1, agent2)
 
+
 def load_zoo_agent(env_name, ob_space, action_space, tag=1, version=3, scope=""):
     sess=tf.get_default_session()
     if sess is None:
@@ -123,15 +124,15 @@ def load_zoo_agent(env_name, ob_space, action_space, tag=1, version=3, scope="")
 
     zoo_agent = None
     if env_name in ['multicomp/YouShallNotPassHumans-v0', "multicomp/RunToGoalAnts-v0", "multicomp/RunToGoalHumans-v0"]:
-                zoo_agent = MlpPolicyValue(scope="mlp_policy"+scope, reuse=False,
-                                        ob_space=ob_space,
-                                        ac_space=action_space,
-                                        hiddens=[64, 64], normalize=True)
+        zoo_agent = MlpPolicyValue(scope="mlp_policy"+scope, reuse=False,
+                                ob_space=ob_space,
+                                ac_space=action_space,
+                                hiddens=[64, 64], normalize=True)
     else:
-                zoo_agent = LSTMPolicy(scope="lstm_policy"+scope, reuse=False,
-                                        ob_space=ob_space,
-                                        ac_space=action_space,
-                                        hiddens=[128, 128], normalize=True)
+        zoo_agent = LSTMPolicy(scope="lstm_policy"+scope, reuse=False,
+                                ob_space=ob_space,
+                                ac_space=action_space,
+                                hiddens=[128, 128], normalize=True)
 
     sess.run(tf.variables_initializer(zoo_agent.get_variables()))
     env_path = None
@@ -149,8 +150,8 @@ def load_zoo_agent(env_name, ob_space, action_space, tag=1, version=3, scope="")
 
 
 class ZooAgent(object):
-    def __init__(self, env_name, ob_space, action_space, tag, scope):
-        self.agent = load_zoo_agent(env_name, ob_space, action_space, tag=tag, scope=scope)
+    def __init__(self, env_name, ob_space, action_space, tag, version, scope):
+        self.agent = load_zoo_agent(env_name, ob_space, action_space, tag=tag, version=version, scope=scope)
 
     def reset(self):
         return self.agent.reset()
@@ -164,6 +165,6 @@ class ZooAgent(object):
         return self.agent.act(stochastic=False, observation=observation)[0]
 
 
-def make_zoo_agent(env_name, ob_space, action_space, tag=2, scope=""):
+def make_zoo_agent(env_name, ob_space, action_space, tag=2, version=1, scope=""):
 
-    return ZooAgent(env_name, ob_space, action_space, tag, scope)
+    return ZooAgent(env_name, ob_space, action_space, tag, version, scope)

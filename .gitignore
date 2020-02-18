@@ -1,2 +1,3 @@
 ./MuJoCo/agent-zoo/*
 ./MuJoCo/src/__pycache__/*
+./MuJoCo/src/.idea/*

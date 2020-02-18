@@ -162,9 +162,12 @@ class Multi2SingleEnv(Wrapper):
 
         # Save and normalize the victim observation and return.
         # self.oppo_reward = self.reward
-        self.oppo_reward = -1.0 * self.info['reward_remaining'] * 0.01
-        self.abs_reward =  info['reward_remaining'] * 0.01 - self.info['reward_remaining'] * 0.01
-        #self.oppo_reward = apply_reward_shapping(self.info, self.shaping_params, self.scheduler)
+        # self.oppo_reward = -1.0 * self.info['reward_remaining'] * 0.01
+        # self.abs_reward =  info['reward_remaining'] * 0.01 - self.info['reward_remaining'] * 0.01
+
+        self.oppo_reward = apply_reward_shapping(self.info, self.shaping_params, self.scheduler)
+        self.abs_reward = apply_reward_shapping(info, self.shaping_params, self.scheduler)
+        self.abs_reward = self.abs_reward - self.oppo_reward
 
         if self.norm:
             self.ret = self.ret * self.gamma + self.oppo_reward
@@ -216,10 +219,15 @@ class Multi2SingleEnv(Wrapper):
         return ob
 
 
-def make_zoo_multi2single_env(env_name, shaping_params, scheduler, reverse=True):
+def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, reverse=True):
+    if 'You' in env_name.split('/')[1]:
+        tag = 1
+    else:
+        tag = 2
 
     env = gym.make(env_name)
-    zoo_agent = make_zoo_agent(env_name, env.observation_space.spaces[1], env.action_space.spaces[1], tag=2)
+    zoo_agent = make_zoo_agent(env_name, env.observation_space.spaces[1], env.action_space.spaces[1],
+                               tag=tag, version=version)
 
     return Multi2SingleEnv(env, zoo_agent, reverse, shaping_params, scheduler)
 

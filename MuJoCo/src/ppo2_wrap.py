@@ -171,7 +171,7 @@ class MyPPO2(ActorCriticRLModel):
                     n_batch_step = self.n_envs
                     n_batch_train = self.n_batch // self.nminibatches
 
-                # todo: question about this part.
+
                 act_model = self.policy(self.sess, self.observation_space, self.action_space, self.n_envs, 1,
                                         n_batch_step, reuse=False, **self.policy_kwargs)
 

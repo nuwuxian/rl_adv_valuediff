@@ -14,45 +14,113 @@ from value import MlpValue, MlpLstmValue
 # from common import get_zoo_path
 
 
-model_dir = '../agent-zoo'
-adv_rew_shape_params = {'weights': {'dense': {'reward_move': 0.1}, 'sparse': {'reward_remaining': 0.01}},
-                        'anneal_frac': 0}
-vic_rew_shape_params = {'weights': {'dense': {'reward_move': 0.1}, 'sparse': {'reward_remaining': 0.01}},
-                        'anneal_frac': 0}
+##################
+# Hyper-parameters
+##################
+parser = argparse.ArgumentParser()
+# game env
+parser.add_argument("--env", type=int, default=5)
+# random seed
+parser.add_argument("--seed", type=int, default=0)
+# number of game environment. should be divisible by NBATCHES if using a LSTM policy
+parser.add_argument("--n_games", type=int, default=1) # N_GAME = 8
+# which victim agent to use
+parser.add_argument("--vic_agt_id", type=int, default=3)
 
-gamma = 0.99
-training_iter = 20000000
-ent_coef = 0.00
-nminibatches = 4
-noptepochs = 4
-learning_rate = 3e-4
-# lstm length should be small
-n_steps = 2048
-checkpoint_step = 1000000
-test_episodes = 100
-lr_schedule = 'const'
+# victim agent network
+parser.add_argument("--vic_net", type=str, default='MLP')
+# adv agent network
+parser.add_argument("--adv_net", type=str, default='MLP')
 
-coef_opp_init = -1
-coef_opp_schedule = 'const'
-coef_adv_init = 1
-coef_adv_schedule = 'const'
-coef_abs_init = -1
-coef_abs_schedule = 'const'
+# learning rate scheduler
+parser.add_argument("--lr_sch", type=str, default='const')
+# number of steps / lstm length should be small
+parser.add_argument("--nsteps", type=int, default=2048)
 
+# victim loss coefficient.
+parser.add_argument("--vic_coef_init", type=int, default=-1)
+# victim loss schedule
+parser.add_argument("--vic_coef_sch", type=str, default='const')
+# adv loss coefficient.
+parser.add_argument("--adv_coef_init", type=int, default=1)
+# adv loss schedule
+parser.add_argument("--adv_coef_sch", type=str, default='const')
+# diff loss coefficient.
+parser.add_argument("--diff_coef_init", type=int, default=-1)
+# diff loss schedule
+parser.add_argument("--diff_coef_sch", type=str, default='const')
 
-callback_key = 'update'
-callback_mul = 16384
-log_interval = 2048
+# load pretrained agent
+parser.add_argument("--load", type=int, default=0)
+# visualize the video
+parser.add_argument("--render", type=int, default=0)
+args = parser.parse_args()
 
-# number of copied game environment.
-n_cpu = 8
-pretrain_template = "../agent-zoo/%s-pretrained-expert-1000-1000-1e-03.pkl"
+### environment selection
+# game env
+GAME_ENV = env_list[args.env]
+# random seed
+GAME_SEED = args.seed
+# number of game
+N_GAME = args.n_games
+# which victim agent to use
+VIC_AGT_ID = args.vic_agt_id
 
+### reward hyperparameters
+# reward shaping parameters
+REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 0.1}, 'sparse': {'reward_remaining': 0.01}},
+                    'anneal_frac': 0}
+# reward discount factor
+GAMMA = 0.99
 
-def Adv_train(env, total_timesteps, callback_key, callback_mul, logger):
-    # log_callback
+# victim agent value network
+VIC_NET = args.vic_net
+# adv agent network
+ADV_NET = args.adv_net
+
+### training hyperparameters
+# total training iterations.
+TRAINING_ITER = 20000000
+NBATCHES = 4
+NEPOCHS = 4
+LR = 3e-4
+LR_SCHEDULE = args.lr_sch
+NSTEPS = args.nsteps
+CHECKPOINT_STEP = 1000000
+TEST_EPISODES = 100
+
+### loss function hyperparameters
+# weight of entropy loss in the final loss
+ENT_COEF = 0.00
+COEF_VIC_INIT = args.vic_coef_init
+COEF_VIC_SCHEDULE = args.vic_coef_sch
+COEF_ADV_INIT = args.adv_coef_init
+COEF_ADV_SCHEDULE = args.adv_coef_sch
+COEF_DIFF_INIT = args.diff_coef_init
+COEF_DIFF_SCHEDULE = args.diff_coef_sch
+
+### callback hyperparameters
+CALLBACK_KEY = 'update'
+CALLBACK_MUL = 16384
+LOG_INTERVAL = 2048
+
+PRETRAIN_TEMPLETE = "../agent-zoo/%s-pretrained-expert-1000-1000-1e-03.pkl"
+
+### SAVE_DIR AND NAME
+SAVE_DIR = '../agent-zoo/'+ GAME_ENV.split('/')[1] + '_' + str(VIC_AGT_ID)+'_' + ADV_NET + '_' + VIC_NET + '_' + \
+           str(COEF_VIC_INIT) + '_' +  COEF_VIC_SCHEDULE + '_' + \
+           str(COEF_ADV_INIT) + '_' +  COEF_ADV_SCHEDULE + '_' + \
+           str(COEF_DIFF_INIT) + '_' + COEF_DIFF_SCHEDULE
+EXP_NAME = str(GAME_SEED)
+
+# choose the victim agent.
+if 'You' in GAME_ENV.split('/')[1]:
+    REVERSE = True
+else:
+    REVERSE = False
+
+def Adv_train(env, total_timesteps, log_interval, callback_key, callback_mul, logger, seed):
     log_callback = lambda logger, locals, globals: env.log_callback(logger)
-
     last_log = 0
 
     def callback(locals, globals):
@@ -61,84 +129,67 @@ def Adv_train(env, total_timesteps, callback_key, callback_mul, logger):
         if step - log_interval > last_log:
             log_callback(logger, locals, globals)
             last_log = step
-
         return True
 
-    model.learn(total_timesteps=total_timesteps, log_interval=1, callback=callback)
+    model.learn(total_timesteps=total_timesteps, log_interval=1, callback=callback, seed=seed)
 
 if __name__=="__main__":
 
-        parser = argparse.ArgumentParser()
-        # game env
-        parser.add_argument("--env", type=int, default=5)
-        parser.add_argument("--seed", type=int, default=0)
-        # load pretrained agent
-        parser.add_argument("--load", type=int, default=0)
-        # visualize the video
-        parser.add_argument("--render", type=int, default=0)
-        # which agent to attack
-        parser.add_argument("--reverse", type=int, default=0)
-        # output dir
-        parser.add_argument('--root_dir', type=str, default="../agent-zoo")
-        parser.add_argument('--exp_name', type=str, default="ppo2")
-        args = parser.parse_args()
-
-        # anneal decay
-        scheduler = Scheduler(annealer_dict={'lr': ConstantAnnealer(learning_rate)})
-        env_name = env_list[args.env]
-
-        # create a env.
-        env = gym.make(env_name)
+        # reward_anneal decay
+        scheduler = Scheduler(annealer_dict={'lr': ConstantAnnealer(LR)})
+        env_name = GAME_ENV
 
         # multi to single
-        venv = SubprocVecEnv([lambda: make_zoo_multi2single_env(env_name, vic_rew_shape_params, scheduler, reverse=False)
-                              for i in range(n_cpu)])
+        venv = SubprocVecEnv([lambda: make_zoo_multi2single_env(env_name, VIC_AGT_ID, REW_SHAPE_PARAMS, scheduler,
+                                                                reverse=REVERSE) for i in range(N_GAME)])
         # test
-        venv = Monitor(venv, 0)
+        if REVERSE:
+            venv = Monitor(venv, 1)
+        else:
+            venv = Monitor(venv, 0)
 
         # reward sharping.
         rew_shape_venv = apply_reward_wrapper(single_env=venv, scheduler=scheduler,
-                                              agent_idx=0, shaping_params=adv_rew_shape_params)
+                                              agent_idx=0, shaping_params=REW_SHAPE_PARAMS)
+
         # normalize reward
         venv = VecNormalize(rew_shape_venv)
         # makedir output
-        out_dir, logger = setup_logger(args.root_dir, args.exp_name)
+        out_dir, logger = setup_logger(SAVE_DIR, EXP_NAME)
 
-        model = MyPPO2(MlpPolicy,
-                       venv,
-                       lr_schedule=lr_schedule,
-                       coef_opp_init=coef_opp_init,
-                       coef_opp_schedule=coef_opp_schedule,
-                       coef_adv_init=coef_adv_init,
-                       coef_adv_schedule=coef_adv_schedule,
-                       coef_abs_init=coef_abs_init,
-                       coef_abs_schedule=coef_abs_schedule,
-                       ent_coef=ent_coef,
-                       nminibatches=nminibatches, noptepochs=noptepochs,
-                       learning_rate=learning_rate,  verbose=1,
-                       n_steps=n_steps, gamma=gamma, is_mlp=False,
-                       env_name=env_name, opp_value=MlpLstmValue) # , rl_path=rl_path, var_path=var_path)
-        '''
-        if args.load == 0:
-            model = PPO2(MlpPolicy, 
-                         venv, 
-                         ent_coef=ent_coef,
-                         nminibatches=nminibatches,
-                         noptepochs=noptepochs,
-                         learning_rate=learning_rate,
-                         verbose=1,
-                         n_steps=n_steps,
-                         gamma=gamma)
-                         # seed=args.seed,
-                         # n_cpu_tf_sess=1)
+        if ADV_NET == 'MLP':
+            adv_agent = MlpPolicy
+        elif ADV_NET == 'LSTM':
+            adv_agent = MlpLstmPolicy
         else:
-            model = PPO2.load(pretrain_template%(env_name.split("/")[1]), 
-                              venv, 
-                              gamma=gamma,
-                              ent_coef=ent_coef, 
-                              nminibatches=nminibatches, 
-                              learning_rate=learning_rate,
-                              n_steps=n_steps)
-        '''
-        Adv_train(venv, training_iter, callback_key, callback_mul, logger)
+            print('Unknow adversarial agent network type. Using mlp')
+            adv_agent = MlpPolicy
+
+        if VIC_NET == 'MLP':
+            IS_MLP = True
+            vic_value = MlpValue
+        elif VIC_NET == 'LSTM':
+            IS_MLP = False
+            vic_value = MlpLstmValue
+        else:
+            print('Unknow victim value network type.')
+            IS_MLP = True
+            vic_value = MlpValue
+
+        model = MyPPO2(adv_agent,
+                       venv,
+                       lr_schedule=LR_SCHEDULE,
+                       coef_opp_init=COEF_VIC_INIT,
+                       coef_opp_schedule=COEF_VIC_SCHEDULE,
+                       coef_adv_init=COEF_ADV_INIT,
+                       coef_adv_schedule=COEF_ADV_SCHEDULE,
+                       coef_abs_init=COEF_DIFF_INIT,
+                       coef_abs_schedule=COEF_ADV_SCHEDULE,
+                       ent_coef=ENT_COEF,
+                       nminibatches=NBATCHES, noptepochs=NEPOCHS,
+                       learning_rate=LR,  verbose=1,
+                       n_steps=NSTEPS, gamma=GAMMA, is_mlp=IS_MLP,
+                       env_name=env_name, opp_value=vic_value)
+
+        Adv_train(venv, TRAINING_ITER, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED)
         model.save(os.path.join(out_dir, env_name.split('/')[1]))

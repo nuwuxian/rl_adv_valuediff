@@ -255,7 +255,6 @@ class LstmPolicy(RecurrentActorCriticPolicy):
         pass
 
 
-
 class FeedForwardPolicy(ActorCriticPolicy):
     """
     Policy object that implements actor critic, using a feed forward neural network.
@@ -314,6 +313,7 @@ class FeedForwardPolicy(ActorCriticPolicy):
     def step(self, obs, state=None, mask=None, deterministic=False):
         pass
 
+
 class MlpValue(FeedForwardPolicy):
     """
     Policy object that implements actor critic, using a MLP (2 layers of 64)
@@ -330,6 +330,7 @@ class MlpValue(FeedForwardPolicy):
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False, **_kwargs):
         super(MlpValue, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                         feature_extraction="mlp", **_kwargs)
+
 
 class MlpLstmValue(LstmPolicy):
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, n_lstm=128, reuse=False, **_kwargs):
