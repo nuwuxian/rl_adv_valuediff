@@ -523,56 +523,26 @@ class MyPPO2(ActorCriticRLModel):
                 ep_info_buf.extend(ep_infos)
                 mb_loss_vals = []
 
-                if states is None:  # nonrecurrent version
-                    if self.is_mlp:
-                        update_fac = self.n_batch // self.nminibatches // self.noptepochs + 1
-                        inds = np.arange(self.n_batch)
-                        for epoch_num in range(self.noptepochs):
-                            np.random.shuffle(inds)
-                            for start in range(0, self.n_batch, batch_size):
-                                timestep = self.num_timesteps // update_fac + ((self.noptepochs * self.n_batch + epoch_num *
-                                                                                self.n_batch + start) // batch_size)
-                                end = start + batch_size
-                                mbinds = inds[start:end]
-                                slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                                slices_victim = (arr[mbinds] for arr in (opp_obs, opp_returns, opp_values, abs_returns, abs_values))
+                if self.is_mlp and states is None:
+                    update_fac = self.n_batch // self.nminibatches // self.noptepochs + 1
+                    inds = np.arange(self.n_batch)
+                    for epoch_num in range(self.noptepochs):
+                        np.random.shuffle(inds)
+                        for start in range(0, self.n_batch, batch_size):
+                            timestep = self.num_timesteps // update_fac + ((self.noptepochs * self.n_batch + epoch_num *
+                                                                            self.n_batch + start) // batch_size)
+                            end = start + batch_size
+                            mbinds = inds[start:end]
+                            slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
+                            slices_victim = (arr[mbinds] for arr in (opp_obs, opp_returns, opp_values, abs_returns, abs_values))
 
-                                mb_loss_vals.append(self._train_step(lr_now, cliprangenow, coef_opp_now, coef_adv_now, coef_abs_now,
-                                                                     *slices, *slices_victim,
-                                                                     writer=writer, update=timestep))
+                            mb_loss_vals.append(self._train_step(lr_now, cliprangenow, coef_opp_now, coef_adv_now, coef_abs_now,
+                                                                 *slices, *slices_victim,
+                                                                 writer=writer, update=timestep))
 
-                        self.num_timesteps += (self.n_batch * self.noptepochs) // batch_size * update_fac
-                    else:
-                        # ifnot mlp
-                        update_fac = self.n_batch // self.nminibatches // self.noptepochs // self.n_steps + 1
-                        assert self.n_envs % self.nminibatches == 0
-                        env_indices = np.arange(self.n_envs)
-                        flat_indices = np.arange(self.n_envs * self.n_steps).reshape(self.n_envs, self.n_steps)
-                        envs_per_batch = batch_size // self.n_steps
-                        for epoch_num in range(self.noptepochs):
-                            np.random.shuffle(env_indices)
-                            for start in range(0, self.n_envs, envs_per_batch):
-                                timestep = self.num_timesteps // update_fac + (
-                                            (self.noptepochs * self.n_envs + epoch_num *
-                                             self.n_envs + start) // envs_per_batch)
-                                end = start + envs_per_batch
-                                mb_env_inds = env_indices[start:end]
-                                mb_flat_inds = flat_indices[mb_env_inds].ravel()
-                                slices = (arr[mb_flat_inds] for arr in
-                                          (obs, returns, masks, actions, values, neglogpacs))
-                                slices_victim = (arr[mb_flat_inds] for arr in (opp_obs, opp_returns, opp_values, abs_returns, abs_values))
-                                opp_mb_states = opp_states[mb_env_inds]
-                                abs_mb_states = abs_states[mb_env_inds]
-
-                                mb_loss_vals.append(self._train_step(lr_now, cliprangenow, coef_opp_now, coef_adv_now, coef_abs_now,
-                                                                     *slices, *slices_victim,
-                                                                     update=timestep, writer=writer,
-                                                                     opp_states=opp_mb_states, abs_states=abs_mb_states))
-
-                        self.num_timesteps += (self.n_envs * self.noptepochs) // envs_per_batch * update_fac
-
-                else:  # recurrent version
-                    # TODO pass away
+                    self.num_timesteps += (self.n_batch * self.noptepochs) // batch_size * update_fac
+                else:
+                    # ifnot mlp
                     update_fac = self.n_batch // self.nminibatches // self.noptepochs // self.n_steps + 1
                     assert self.n_envs % self.nminibatches == 0
                     env_indices = np.arange(self.n_envs)
@@ -581,16 +551,23 @@ class MyPPO2(ActorCriticRLModel):
                     for epoch_num in range(self.noptepochs):
                         np.random.shuffle(env_indices)
                         for start in range(0, self.n_envs, envs_per_batch):
-                            timestep = self.num_timesteps // update_fac + ((self.noptepochs * self.n_envs + epoch_num *
-                                                                            self.n_envs + start) // envs_per_batch)
+                            timestep = self.num_timesteps // update_fac + (
+                                        (self.noptepochs * self.n_envs + epoch_num *
+                                         self.n_envs + start) // envs_per_batch)
                             end = start + envs_per_batch
                             mb_env_inds = env_indices[start:end]
                             mb_flat_inds = flat_indices[mb_env_inds].ravel()
-                            slices = (arr[mb_flat_inds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                            slices_victim = (arr[mb_flat_inds] for arr in (opp_returns, opp_values))
-                            mb_states = states[mb_env_inds]
-                            mb_loss_vals.append(self._train_step(lr_now, cliprangenow, *slices, *slices_victim,
-                                                                 update=timestep, writer=writer, states=mb_states))
+                            slices = (arr[mb_flat_inds] for arr in
+                                      (obs, returns, masks, actions, values, neglogpacs))
+                            slices_victim = (arr[mb_flat_inds] for arr in (opp_obs, opp_returns, opp_values, abs_returns, abs_values))
+                            opp_mb_states = opp_states[mb_env_inds]
+                            abs_mb_states = abs_states[mb_env_inds]
+
+                            mb_loss_vals.append(self._train_step(lr_now, cliprangenow, coef_opp_now, coef_adv_now, coef_abs_now,
+                                                                 *slices, *slices_victim,
+                                                                 update=timestep, writer=writer,
+                                                                 opp_states=opp_mb_states, abs_states=abs_mb_states))
+
                     self.num_timesteps += (self.n_envs * self.noptepochs) // envs_per_batch * update_fac
 
                 loss_vals = np.mean(mb_loss_vals, axis=0)
