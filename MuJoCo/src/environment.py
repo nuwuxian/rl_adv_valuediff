@@ -176,6 +176,7 @@ class Multi2SingleEnv(Wrapper):
                         self.ret_abs, self.oppo_reward, self.abs_reward)
             if self.done:
                 self.ret[0] = 0
+                self.ret_abs[0] = 0
         if done:
           if 'winner' in self.info: # victim win.
             info['loser'] = True
@@ -209,7 +210,8 @@ class Multi2SingleEnv(Wrapper):
         self.reward = 0
         self.done = False
         self.ret = np.zeros(1)
-        # reset the agent 
+        self.ret_abs = np.zeros(1)
+        # reset the agent
         # reset the h and c
         self.agent.reset()
         if self.agent_idx == 1:
