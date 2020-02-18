@@ -28,7 +28,7 @@ parser.add_argument("--n_games", type=int, default=4) # N_GAME = 8
 parser.add_argument("--vic_agt_id", type=int, default=3)
 
 # victim agent network
-parser.add_argument("--vic_net", type=str, default='LSTM')
+parser.add_argument("--vic_net", type=str, default='MLP')
 # adv agent network
 parser.add_argument("--adv_net", type=str, default='MLP')
 

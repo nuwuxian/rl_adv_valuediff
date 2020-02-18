@@ -97,6 +97,7 @@ class Multi2SingleEnv(Wrapper):
 
         # normalize the victim's obs and rets
         self.obs_rms = RunningMeanStd(shape=self.observation_space.shape)
+        self.obs_rms_next = RunningMeanStd(shape=self.observation_space.shape)
         self.ret_rms = RunningMeanStd(shape=())
         self.ret_abs_rms = RunningMeanStd(shape=())
 
@@ -159,6 +160,11 @@ class Multi2SingleEnv(Wrapper):
           done, self.done = dones
           info, self.info = infos
         done = func(done)
+
+        self.oppo_ob_next = self.ob.copy()
+        self.obs_rms_next.update(self.oppo_ob_next)
+        self.oppo_ob_next = np.clip((self.oppo_ob_next - self.obs_rms_next.mean) / np.sqrt(self.obs_rms_next.var + self.epsilon),
+                                    -self.clip_obs, self.clip_obs)
 
         # Save and normalize the victim observation and return.
         # self.oppo_reward = self.reward

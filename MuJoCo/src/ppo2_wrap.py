@@ -818,8 +818,12 @@ class Runner(AbstractEnvRunner):
 
         last_values = self.model.value(self.obs, self.states, self.dones)
 
-        opp_last_values, _ = self.v_model.value(np.asarray(self.env.get_attr('ob').copy()), self.opp_states, self.dones)
-        abs_last_values, _ = self.v1_model.value(np.asarray(self.env.get_attr('ob').copy()), self.abs_states, self.dones)
+        if self.use_victim_ob:
+            opp_last_values, _ = self.v_model.value(np.asarray(self.env.get_attr('oppo_ob_next').copy()), self.opp_states, self.dones)
+            abs_last_values, _ = self.v1_model.value(np.asarray(self.env.get_attr('oppo_ob_next').copy()), self.abs_states, self.dones)
+        else:
+            opp_last_values, _ = self.v_model.value(self.obs, self.opp_states, self.dones)
+            abs_last_values, _ = self.v1_model.value(self.obs, self.abs_states, self.dones)
 
         mb_advs = np.zeros_like(mb_rewards)
         mb_opp_advs = np.zeros_like(mb_opp_rewards)
