@@ -82,7 +82,7 @@ ADV_NET = args.adv_net
 
 ### training hyperparameters
 # total training iterations.
-TRAINING_ITER = 35000000
+TRAINING_ITER = 40000000
 NBATCHES = 4
 NEPOCHS = 4
 LR = 3e-4

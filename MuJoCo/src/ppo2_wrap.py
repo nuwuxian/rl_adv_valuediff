@@ -228,7 +228,7 @@ class MyPPO2(ActorCriticRLModel):
                         train_model.value_flat - self.old_vpred_ph, - self.clip_range_ph, self.clip_range_ph)
                     vf_losses1 = tf.square(vpred - self.rewards_ph)
                     vf_losses2 = tf.square(vpredclipped - self.rewards_ph)
-                    self.vf_loss = 0.2 * .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
+                    self.vf_loss = .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
 
                     # victim agent value function loss
                     opp_vpred = vtrain_model.value_flat
@@ -236,7 +236,7 @@ class MyPPO2(ActorCriticRLModel):
                         vtrain_model.value_flat - self.old_opp_vpred_ph, - self.clip_range_ph, self.clip_range_ph)
                     opp_vf_losses1 = tf.square(opp_vpred - self.opp_rewards_ph)
                     opp_vf_losses2 = tf.square(opp_vpredclipped - self.opp_rewards_ph)
-                    self.opp_vf_loss = 0.2 * .5 * tf.reduce_mean(tf.maximum(opp_vf_losses1, opp_vf_losses2))
+                    self.opp_vf_loss = self.vf_coef * .5 * tf.reduce_mean(tf.maximum(opp_vf_losses1, opp_vf_losses2))
 
                     # diff value function loss
                     abs_vpred = vtrain1_model.value_flat
@@ -244,7 +244,7 @@ class MyPPO2(ActorCriticRLModel):
                         vtrain1_model.value_flat - self.old_abs_vpred_ph, - self.clip_range_ph, self.clip_range_ph)
                     abs_vf_losses1 = tf.square(abs_vpred - self.abs_rewards_ph)
                     abs_vf_losses2 = tf.square(abs_vpredclipped - self.abs_rewards_ph)
-                    self.abs_vf_loss = .5 * tf.reduce_mean(tf.maximum(abs_vf_losses1, abs_vf_losses2))
+                    self.abs_vf_loss = self.vf_coef * .5 * tf.reduce_mean(tf.maximum(abs_vf_losses1, abs_vf_losses2))
 
                     # ratio
                     ratio = tf.exp(self.old_neglog_pac_ph - neglogpac)
