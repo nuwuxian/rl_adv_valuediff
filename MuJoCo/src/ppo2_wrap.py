@@ -28,7 +28,7 @@ import pdb
 
 class MyPPO2(ActorCriticRLModel):
     """ Learn policy with PPO """
-    def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
+    def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.2,
                  coef_opp_init=1, coef_opp_schedule='const', coef_adv_init=1, coef_adv_schedule='const',
                  coef_abs_init=1, coef_abs_schedule='const', max_grad_norm=0.5, lam=0.95, nminibatches=4,
                  noptepochs=4, cliprange=0.2, verbose=0,  lr_schedule='const', tensorboard_log=None, _init_setup_model=True,
@@ -228,7 +228,7 @@ class MyPPO2(ActorCriticRLModel):
                         train_model.value_flat - self.old_vpred_ph, - self.clip_range_ph, self.clip_range_ph)
                     vf_losses1 = tf.square(vpred - self.rewards_ph)
                     vf_losses2 = tf.square(vpredclipped - self.rewards_ph)
-                    self.vf_loss = .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
+                    self.vf_loss = 0.2 * .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
 
                     # victim agent value function loss
                     opp_vpred = vtrain_model.value_flat
@@ -236,7 +236,7 @@ class MyPPO2(ActorCriticRLModel):
                         vtrain_model.value_flat - self.old_opp_vpred_ph, - self.clip_range_ph, self.clip_range_ph)
                     opp_vf_losses1 = tf.square(opp_vpred - self.opp_rewards_ph)
                     opp_vf_losses2 = tf.square(opp_vpredclipped - self.opp_rewards_ph)
-                    self.opp_vf_loss = .5 * tf.reduce_mean(tf.maximum(opp_vf_losses1, opp_vf_losses2))
+                    self.opp_vf_loss = 0.2 * .5 * tf.reduce_mean(tf.maximum(opp_vf_losses1, opp_vf_losses2))
 
                     # diff value function loss
                     abs_vpred = vtrain1_model.value_flat
@@ -918,7 +918,7 @@ def linearfn(val):
     """
 
     def func(epoch, total_epoch):
-        frac = 1.0 - (epoch - 1.0) / total_epoch
+        frac = 1.0 - (epoch - 1.0) / total_epoch 
         return val*frac
 
     return func
@@ -930,7 +930,7 @@ def stepfn(val):
     :return: (function)
     """
 
-    def func(epoch, drop=0.8, epoch_drop=2e2):
+    def func(epoch, drop=0.8, epoch_drop=400):
         ratio = drop**((epoch+1) // epoch_drop)
         return val*ratio
 

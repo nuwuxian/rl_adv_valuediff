@@ -290,7 +290,7 @@ class FeedForwardPolicy(ActorCriticPolicy):
                               DeprecationWarning)
         if net_arch is None:
             if layers is None:
-                layers = [64, 64]
+                layers = [128, 128]
         with tf.variable_scope("model", reuse=reuse):
             if feature_extraction == "cnn":
                 vf_latent = cnn_extractor(self.processed_obs, **kwargs)

@@ -46,7 +46,7 @@ parser.add_argument("--adv_coef_init", type=int, default=-1) # negative
 # adv loss schedule
 parser.add_argument("--adv_coef_sch", type=str, default='const')
 # diff loss coefficient.
-parser.add_argument("--diff_coef_init", type=int, default=0) # negative
+parser.add_argument("--diff_coef_init", type=int, default=-1) # negative
 # diff loss schedule
 parser.add_argument("--diff_coef_sch", type=str, default='const')
 
@@ -82,7 +82,7 @@ ADV_NET = args.adv_net
 
 ### training hyperparameters
 # total training iterations.
-TRAINING_ITER = 20000000
+TRAINING_ITER = 35000000
 NBATCHES = 4
 NEPOCHS = 4
 LR = 3e-4
