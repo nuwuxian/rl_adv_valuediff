@@ -33,7 +33,7 @@ parser.add_argument("--vic_net", type=str, default='MLP')
 parser.add_argument("--adv_net", type=str, default='MLP')
 
 # learning rate scheduler
-parser.add_argument("--lr_sch", type=str, default='const')
+parser.add_argument("--lr_sch", type=str, default='linear')
 # number of steps / lstm length should be small
 parser.add_argument("--nsteps", type=int, default=2048)
 
@@ -46,7 +46,7 @@ parser.add_argument("--adv_coef_init", type=int, default=-1) # negative
 # adv loss schedule
 parser.add_argument("--adv_coef_sch", type=str, default='const')
 # diff loss coefficient.
-parser.add_argument("--diff_coef_init", type=int, default=-1) # negative
+parser.add_argument("--diff_coef_init", type=int, default=-3) # negative
 # diff loss schedule
 parser.add_argument("--diff_coef_sch", type=str, default='const')
 
@@ -85,7 +85,7 @@ ADV_NET = args.adv_net
 TRAINING_ITER = 40000000
 NBATCHES = 4
 NEPOCHS = 4
-LR = 3e-4
+LR = 8e-4
 LR_SCHEDULE = args.lr_sch
 NSTEPS = args.nsteps
 CHECKPOINT_STEP = 1000000
@@ -187,7 +187,7 @@ if __name__=="__main__":
                        coef_adv_init=COEF_ADV_INIT,
                        coef_adv_schedule=COEF_ADV_SCHEDULE,
                        coef_abs_init=COEF_DIFF_INIT,
-                       coef_abs_schedule=COEF_ADV_SCHEDULE,
+                       coef_abs_schedule=COEF_DIFF_SCHEDULE,
                        ent_coef=ENT_COEF,
                        nminibatches=NBATCHES, noptepochs=NEPOCHS,
                        learning_rate=LR,  verbose=1,
