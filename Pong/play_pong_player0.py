@@ -38,6 +38,7 @@ date_time = now.strftime("%m%d%Y-%H%M%S")
 
 
 TRAINING_ITER = 8000000
+USE_VIC = False
 
 def make_dirs(dir_dict):
     for key, value in dir_dict.items():
@@ -125,7 +126,7 @@ def advlearn(env, model_name=None, dir_dict=None):
                        coef_abs_schedule=dir_dict['_coef_abs_sch'],
                        n_steps=dir_dict['_n_steps'], verbose=1, opp_value=MlpValue)
     try:
-        model.learn(TRAINING_ITER, callback=callback, seed=dir_dict['_seed'])
+        model.learn(TRAINING_ITER, callback=callback, seed=dir_dict['_seed'], use_victim_ob=USE_VIC)
     except ValueError as e:
         traceback.print_exc()
         print("Learn exit!")
