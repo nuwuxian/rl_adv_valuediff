@@ -124,7 +124,7 @@ def advlearn(env, model_name=None, dir_dict=None):
                        coef_adv_schedule=dir_dict['_coef_adv_sch'],
                        coef_abs_init=dir_dict['_coef_abs_init'],
                        coef_abs_schedule=dir_dict['_coef_abs_sch'],
-                       n_steps=dir_dict['_n_steps'], verbose=1, opp_value=MlpValue)
+                       n_steps=dir_dict['_n_steps'], ent_coef=0, verbose=1, opp_value=MlpValue)
     try:
         model.learn(TRAINING_ITER, callback=callback, seed=dir_dict['_seed'], use_victim_ob=USE_VIC)
     except ValueError as e:
@@ -173,8 +173,8 @@ dir_dict= {
     "_n_steps": args.n_steps,
 }
 
-SAVE_DIR = "PONG_" + str(args.vic_coef_init) + '_' + args.vic_coef_sch + \
-    '_' + str(args.adv_coef_init) + '_' + args.adv_coef_sch + '_' + \
+SAVE_DIR = './agent_zoo/'+ "Pong_" + str(args.vic_coef_init) + '_' + args.vic_coef_sch + \
+    '_' + str(args.adv_coef_init) + '_' + args.adv_coef_sch +  \
     '_' + str(args.diff_coef_init) + '_' + args.diff_coef_sch
 
 EXP_NAME = str(args.seed)
