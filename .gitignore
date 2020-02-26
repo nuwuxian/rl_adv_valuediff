@@ -1,6 +1,8 @@
 MuJoCo/agent-zoo/*
 MuJoCo/src/__pycache__/*
 MuJoCo/src/.idea/*
+Pong/src/*.sh
+Pong/src/.idea/*
 MuJoCo/src/run.sh
 MuJoCo/src/*.txt
 .idea/*

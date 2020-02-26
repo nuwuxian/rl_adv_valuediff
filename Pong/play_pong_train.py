@@ -1,7 +1,8 @@
 import os, sys, subprocess
 import argparse
-import roboschool, multiplayer
-
+import roboschool
+# from roboschool import multiplayer
+import multiplayer
 
 # We assume the Game Server running forever
 # Set a Large number: 10000256
