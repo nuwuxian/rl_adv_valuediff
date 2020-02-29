@@ -6,8 +6,8 @@ import numpy as np
 from pysc2.lib.typeenums import UNIT_TYPEID as UNIT_TYPE
 from pysc2.lib.typeenums import ABILITY_ID as ABILITY
 
-from sc2learner.envs.common.const import ALLY_TYPE
-from sc2learner.envs.common.const import COMBAT_TYPES
+from envs.common.const import ALLY_TYPE
+from envs.common.const import COMBAT_TYPES
 
 
 class PlayerFeature(object):

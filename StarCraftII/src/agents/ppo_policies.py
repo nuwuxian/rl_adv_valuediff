@@ -5,9 +5,9 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-from sc2learner.envs.spaces.mask_discrete import MaskDiscrete
-from sc2learner.agents.utils_tf import CategoricalPd
-from sc2learner.agents.utils_tf import fc, lstm, batch_to_seq, seq_to_batch
+from envs.spaces.mask_discrete import MaskDiscrete
+from agents.utils_tf import CategoricalPd
+from agents.utils_tf import fc, lstm, batch_to_seq, seq_to_batch
 
 
 class MlpPolicy(object):
