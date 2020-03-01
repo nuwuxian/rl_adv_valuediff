@@ -14,17 +14,17 @@ from absl import flags
 from absl import logging
 import tensorflow as tf
 
-from sc2learner.agents.ppo_policies import LstmPolicy, MlpPolicy
-from sc2learner.agents.ppo_agent import PPOActor, PPOLearner, PPOSelfplayActor
-from sc2learner.envs.raw_env import SC2RawEnv
-from sc2learner.envs.selfplay_raw_env import SC2SelfplayRawEnv
-from sc2learner.envs.actions.zerg_action_wrappers import ZergActionWrapper
-from sc2learner.envs.actions.zerg_action_wrappers import ZergPlayerActionWrapper
-from sc2learner.envs.observations.zerg_observation_wrappers \
+from agents.ppo_policies import LstmPolicy, MlpPolicy
+from agents.ppo_agent import PPOActor, PPOLearner, PPOSelfplayActor
+from envs.raw_env import SC2RawEnv
+from envs.selfplay_raw_env import SC2SelfplayRawEnv
+from envs.actions.zerg_action_wrappers import ZergActionWrapper
+from envs.actions.zerg_action_wrappers import ZergPlayerActionWrapper
+from envs.observations.zerg_observation_wrappers \
     import ZergObservationWrapper
-from sc2learner.envs.observations.zerg_observation_wrappers \
+from envs.observations.zerg_observation_wrappers \
     import ZergPlayerObservationWrapper
-from sc2learner.utils.utils import print_arguments
+from utils.utils import print_arguments
 
 
 FLAGS = flags.FLAGS

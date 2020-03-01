@@ -8,8 +8,8 @@ import math
 import numpy as np
 from pysc2.lib.typeenums import UNIT_TYPEID as UNIT_TYPE
 
-import sc2learner.envs.common.utils as utils
-from sc2learner.envs.common.const import PLACE_COLLISION_BUILDINGS
+import envs.common.utils as utils
+from envs.common.const import PLACE_COLLISION_BUILDINGS
 
 
 class Placer(object):

@@ -9,11 +9,11 @@ from pysc2.lib.typeenums import UNIT_TYPEID as UNIT_TYPE
 from pysc2.lib.typeenums import ABILITY_ID as ABILITY
 from pysc2.lib.typeenums import UPGRADE_ID as UPGRADE
 
-from sc2learner.envs.actions.function import Function
-import sc2learner.envs.common.utils as utils
-from sc2learner.envs.common.const import ATTACK_FORCE
-from sc2learner.envs.common.const import ALLY_TYPE
-from sc2learner.envs.common.const import PRIORITIZED_ATTACK
+from envs.actions.function import Function
+import envs.common.utils as utils
+from envs.common.const import ATTACK_FORCE
+from envs.common.const import ALLY_TYPE
+from envs.common.const import PRIORITIZED_ATTACK
 
 
 Region = namedtuple('Region', ('ranges', 'rally_point_a', 'rally_point_b'))

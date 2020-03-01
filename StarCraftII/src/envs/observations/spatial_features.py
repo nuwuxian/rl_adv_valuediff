@@ -4,8 +4,8 @@ from __future__ import print_function
 
 import numpy as np
 
-from sc2learner.envs.common.const import ALLY_TYPE
-from sc2learner.envs.common.const import MAP
+from envs.common.const import ALLY_TYPE
+from envs.common.const import MAP
 
 
 class UnitTypeCountMapFeature(object):

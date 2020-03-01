@@ -11,13 +11,13 @@ from absl import flags
 from absl import logging
 import tensorflow as tf
 
-from sc2learner.envs.lan_raw_env import LanSC2RawEnv
-from sc2learner.envs.observations.zerg_observation_wrappers \
+from envs.lan_raw_env import LanSC2RawEnv
+from envs.observations.zerg_observation_wrappers \
     import ZergObservationWrapper
-from sc2learner.envs.actions.zerg_action_wrappers import ZergActionWrapper
-from sc2learner.utils.utils import print_arguments
-from sc2learner.agents.ppo_policies import LstmPolicy, MlpPolicy
-from sc2learner.agents.ppo_agent import PPOAgent
+from envs.actions.zerg_action_wrappers import ZergActionWrapper
+from utils.utils import print_arguments
+from agents.ppo_policies import LstmPolicy, MlpPolicy
+from agents.ppo_agent import PPOAgent
 
 
 FLAGS = flags.FLAGS

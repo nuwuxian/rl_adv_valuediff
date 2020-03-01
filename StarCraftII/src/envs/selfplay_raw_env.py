@@ -5,9 +5,9 @@ from __future__ import print_function
 import gym
 from pysc2.env import sc2_env
 
-from sc2learner.envs.spaces.pysc2_raw import PySC2RawAction
-from sc2learner.envs.spaces.pysc2_raw import PySC2RawObservation
-from sc2learner.utils.utils import tprint
+from envs.spaces.pysc2_raw import PySC2RawAction
+from envs.spaces.pysc2_raw import PySC2RawObservation
+from utils.utils import tprint
 
 
 DIFFICULTIES= {

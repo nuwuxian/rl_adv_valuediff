@@ -7,18 +7,18 @@ import gym
 from gym import spaces
 from pysc2.lib.typeenums import UNIT_TYPEID as UNIT_TYPE
 
-from sc2learner.envs.spaces.pysc2_raw import PySC2RawObservation
-from sc2learner.envs.spaces.mask_discrete import MaskDiscrete
-from sc2learner.envs.common.data_context import DataContext
-from sc2learner.envs.observations.spatial_features import UnitTypeCountMapFeature
-from sc2learner.envs.observations.spatial_features import AllianceCountMapFeature
-from sc2learner.envs.observations.nonspatial_features import PlayerFeature
-from sc2learner.envs.observations.nonspatial_features import ScoreFeature
-from sc2learner.envs.observations.nonspatial_features import WorkerFeature
-from sc2learner.envs.observations.nonspatial_features import UnitTypeCountFeature
-from sc2learner.envs.observations.nonspatial_features import UnitStatCountFeature
-from sc2learner.envs.observations.nonspatial_features import GameProgressFeature
-from sc2learner.envs.observations.nonspatial_features import ActionSeqFeature
+from envs.spaces.pysc2_raw import PySC2RawObservation
+from envs.spaces.mask_discrete import MaskDiscrete
+from envs.common.data_context import DataContext
+from envs.observations.spatial_features import UnitTypeCountMapFeature
+from envs.observations.spatial_features import AllianceCountMapFeature
+from envs.observations.nonspatial_features import PlayerFeature
+from envs.observations.nonspatial_features import ScoreFeature
+from envs.observations.nonspatial_features import WorkerFeature
+from envs.observations.nonspatial_features import UnitTypeCountFeature
+from envs.observations.nonspatial_features import UnitStatCountFeature
+from envs.observations.nonspatial_features import GameProgressFeature
+from envs.observations.nonspatial_features import ActionSeqFeature
 
 
 class ZergObservationWrapper(gym.Wrapper):

@@ -12,15 +12,15 @@ from pysc2.lib.typeenums import UPGRADE_ID as UPGRADE
 from pysc2.lib import point
 from s2clientprotocol import sc2api_pb2 as sc_pb
 
-from sc2learner.envs.spaces.pysc2_raw import PySC2RawObservation
-from sc2learner.envs.spaces.mask_discrete import MaskDiscrete
-from sc2learner.envs.common.data_context import DataContext
-from sc2learner.envs.actions.function import Function
-from sc2learner.envs.actions.produce import ProduceActions
-from sc2learner.envs.actions.build import BuildActions
-from sc2learner.envs.actions.upgrade import UpgradeActions
-from sc2learner.envs.actions.resource import ResourceActions
-from sc2learner.envs.actions.combat import CombatActions
+from envs.spaces.pysc2_raw import PySC2RawObservation
+from envs.spaces.mask_discrete import MaskDiscrete
+from envs.common.data_context import DataContext
+from envs.actions.function import Function
+from envs.actions.produce import ProduceActions
+from envs.actions.build import BuildActions
+from envs.actions.upgrade import UpgradeActions
+from envs.actions.resource import ResourceActions
+from envs.actions.combat import CombatActions
 
 
 class ZergActionWrapper(gym.Wrapper):

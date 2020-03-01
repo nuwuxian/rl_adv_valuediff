@@ -17,9 +17,9 @@ import tensorflow as tf
 import zmq
 from gym import spaces
 
-from sc2learner.envs.spaces.mask_discrete import MaskDiscrete
-from sc2learner.agents.utils_tf import explained_variance
-from sc2learner.utils.utils import tprint
+from envs.spaces.mask_discrete import MaskDiscrete
+from agents.utils_tf import explained_variance
+from utils.utils import tprint
 
 
 class Model(object):
@@ -291,7 +291,11 @@ class PPOLearner(object):
 
   def run(self):
     #while len(self._data_queue) < self._data_queue.maxlen: time.sleep(1)
+    tprint('enter this learner')
     while len(self._episode_infos) < self._episode_infos.maxlen / 2:
+      tprint(len(self._episode_infos))
+      tprint(self._episode_infos.maxlen / 2)
+      tprint('leave this learner')
       time.sleep(1)
 
     batch_queue = Queue(4)
@@ -310,10 +314,13 @@ class PPOLearner(object):
       while (self._learn_act_speed_ratio > 0 and
           updates * self._batch_size >= \
           self._num_unrolls * self._learn_act_speed_ratio):
+        tprint("learner enter here ...")
         time.sleep(0.001)
       updates += 1
       lr_now = self._lr(updates)
       clip_range_now = self._clip_range(updates)
+
+      tprint('learner is learn')
 
       batch = batch_queue.get()
       obs, returns, dones, actions, values, neglogpacs, states = batch

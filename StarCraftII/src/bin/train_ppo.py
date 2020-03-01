@@ -14,14 +14,14 @@ from absl import flags
 from absl import logging
 import tensorflow as tf
 
-from sc2learner.agents.ppo_policies import LstmPolicy, MlpPolicy
-from sc2learner.agents.ppo_agent import PPOActor, PPOLearner
-from sc2learner.envs.raw_env import SC2RawEnv
-from sc2learner.envs.rewards.reward_wrappers import KillingRewardWrapper
-from sc2learner.envs.actions.zerg_action_wrappers import ZergActionWrapper
-from sc2learner.envs.observations.zerg_observation_wrappers \
+from agents.ppo_policies import LstmPolicy, MlpPolicy
+from agents.ppo_agent import PPOActor, PPOLearner
+from envs.raw_env import SC2RawEnv
+from envs.rewards.reward_wrappers import KillingRewardWrapper
+from envs.actions.zerg_action_wrappers import ZergActionWrapper
+from envs.observations.zerg_observation_wrappers \
     import ZergObservationWrapper
-from sc2learner.utils.utils import print_arguments
+from utils.utils import print_arguments
 
 
 FLAGS = flags.FLAGS
@@ -68,7 +68,7 @@ def tf_config(ncpu=None):
 
 
 def create_env(difficulty, random_seed=None):
-  env = SC2RawEnv(map_name='AbyssalReef',
+  env = SC2RawEnv(map_name='Flat32',
                   step_mul=FLAGS.step_mul,
                   resolution=16,
                   agent_race='zerg',
