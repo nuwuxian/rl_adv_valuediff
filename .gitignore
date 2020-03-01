@@ -6,6 +6,7 @@ StarCraftII/src/bin/__pycache__/*
 StarCraftII/src/envs/actions/__pycache__/*
 StarCraftII/src/envs/common/__pycache__/*
 StarCraftII/src/envs/observations/__pycache__/*
+StarCraftII/src/envs/__pycache__/*
 StarCraftII/src/envs/rewards/__pycache__/*
 StarCraftII/src/envs/spaces/__pycache__/*
 StarCraftII/src/utils/__pycache__/*
