@@ -13,14 +13,20 @@ from envs.common.const import ALLY_TYPE
 class RewardShapingWrapperV1(gym.Wrapper):
 
     def __init__(self, env):
+        """ apply reward shapping.
+        :param env: gym environment or wrapper.
+        variable members: self.observation_space, self.action_space, self.reward_range.
+
+        """
         super(RewardShapingWrapperV1, self).__init__(env)
         assert isinstance(env.observation_space, PySC2RawObservation)
-        self._combat_unit_types = set([UNIT_TYPE.ZERG_ZERGLING.value,
-                                       UNIT_TYPE.ZERG_ROACH.value,
-                                       UNIT_TYPE.ZERG_HYDRALISK.value])
+        self._combat_unit_types = set([UNIT_TYPE.ZERG_ZERGLING.value, # SMART MOVE PATROL HOLDPOSITION TRAIN_BANELING BURROWDOWN STOP ATTACK
+                                       UNIT_TYPE.ZERG_ROACH.value, # SMART MOVE PATROL HOLDPOSITION MORPH_RAVAGER BURROWDOWN STOP ATTACK
+                                       UNIT_TYPE.ZERG_HYDRALISK.value]) # BURROWUP
         self.reward_range = (-np.inf, np.inf)
 
     def step(self, action):
+        # Todo: find out the meaning of the rewards.
         observation, outcome, done, info = self.env.step(action)
         n_enemies, n_self_combats = self._get_unit_counts(observation)
         if n_self_combats - n_enemies > self._n_self_combats - self._n_enemies:
