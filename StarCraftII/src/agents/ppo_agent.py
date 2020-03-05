@@ -21,7 +21,6 @@ from envs.spaces.mask_discrete import MaskDiscrete
 from agents.utils_tf import explained_variance
 from utils.utils import tprint
 
-
 class Model(object):
   def __init__(self, *, policy, ob_space, ac_space, nbatch_act, nbatch_train,
                unroll_length, ent_coef, vf_coef, max_grad_norm, scope_name,
@@ -32,6 +31,8 @@ class Model(object):
                        reuse=False)
     train_model = policy(sess, scope_name, ob_space, ac_space, nbatch_train,
                          unroll_length, reuse=True)
+
+
 
     A = tf.placeholder(shape=(nbatch_train,), dtype=tf.int32)
     ADV = tf.placeholder(tf.float32, [None])
@@ -189,7 +190,10 @@ class PPOActor(object):
       if self._done:
         self._obs = self._env.reset()
         self._state = self._model.initial_state
-        episode_infos.append({'r': self._cum_reward})
+        #episode_infos.append({'r': self._cum_reward})
+        # add by xian
+        # calculate the winning rate
+        episode_infos.append({'r': self._cum_reward, 'win': int(info['winning'])})
         self._cum_reward = 0
       mb_rewards.append(reward)
     if isinstance(self._obs, tuple):
@@ -275,7 +279,7 @@ class PPOLearner(object):
     assert self._unroll_length % self._unroll_split == 0
     self._data_queue = deque(maxlen=queue_size * self._unroll_split)
     self._data_timesteps = deque(maxlen=200)
-    self._episode_infos = deque(maxlen=5000)
+    self._episode_infos = deque(maxlen=48)
     self._num_unrolls = 0
 
     self._zmq_context = zmq.Context()
@@ -291,11 +295,8 @@ class PPOLearner(object):
 
   def run(self):
     #while len(self._data_queue) < self._data_queue.maxlen: time.sleep(1)
-    tprint('enter this learner')
     while len(self._episode_infos) < self._episode_infos.maxlen / 2:
-      tprint(len(self._episode_infos))
-      tprint(self._episode_infos.maxlen / 2)
-      tprint('leave this learner')
+      tprint('episode num is %d' %len(self._episode_infos))
       time.sleep(1)
 
     batch_queue = Queue(4)
@@ -314,13 +315,10 @@ class PPOLearner(object):
       while (self._learn_act_speed_ratio > 0 and
           updates * self._batch_size >= \
           self._num_unrolls * self._learn_act_speed_ratio):
-        tprint("learner enter here ...")
         time.sleep(0.001)
       updates += 1
       lr_now = self._lr(updates)
       clip_range_now = self._clip_range(updates)
-
-      tprint('learner is learn')
 
       batch = batch_queue.get()
       obs, returns, dones, actions, values, neglogpacs, states = batch
@@ -337,6 +335,13 @@ class PPOLearner(object):
             (time.time() - self._data_timesteps[0])
         var = explained_variance(values, returns)
         avg_reward = safemean([info['r'] for info in self._episode_infos])
+
+        # print the winning rate and number of the games
+        total_game = len(self._episode_infos)
+        winning_rate = sum([info['win'] for info in self._episode_infos]) * 1.0 / total_game
+        tprint('Total_Game is %d, Winning_rate is %f' % (total_game, winning_rate))
+
+
         tprint("Update: %d	Train-fps: %.1f	Rollout-fps: %.1f	"
                "Explained-var: %.5f	Avg-reward %.2f	Policy-loss: %.5f	"
                "Value-loss: %.5f	Policy-entropy: %.5f	Approx-KL: %.5f	"
@@ -527,7 +532,9 @@ class PPOSelfplayActor(object):
         self._state = self._model.initial_state
         self._oppo_state = self._oppo_model.initial_state
         self._update_opponent()
-        episode_infos.append({'r': self._cum_reward})
+        # add by xian
+        # calculate the winning rate
+        episode_infos.append({'r': self._cum_reward, 'win': int(info['winning'])})
         self._cum_reward = 0
       mb_rewards.append(reward)
     if isinstance(self._obs, tuple):

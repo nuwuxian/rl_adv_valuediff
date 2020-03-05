@@ -98,18 +98,23 @@ class SC2RawEnv(gym.Env):
         :return: observation t+1, reward t, done t, info t.
         """
         # todo: get the reward for another agent and add somethings in info for computing winning rate.
+        # add computing winning rate
         assert self._reseted
         timestep = self._sc2_env.step([actions])[0]
         observation = timestep.observation
         reward = float(timestep.reward)
         done = timestep.last()
+        info = {}
         if done:
           self._reseted = False
           if self._tie_to_lose and reward == 0:
             reward = -1.0
           tprint("Episode Done. Difficulty: %s Outcome %f" %
                  (self._difficulty, reward))
-        info = {}
+          if reward > 0:
+              info['winning'] = True
+          else:
+              info['winning'] = False
         return (observation, reward, done, info)
 
     def reset(self):
@@ -146,7 +151,7 @@ class SC2RawEnv(gym.Env):
         self._random_seed = (self._random_seed + 11) & 0xFFFFFFFF
         players=[sc2_env.Agent(sc2_env.Race[self._agent_race]),
                  sc2_env.Bot(sc2_env.Race[self._bot_race],
-                             DIFFICULTIES[self._difficulty])]
+                              DIFFICULTIES[self._difficulty])]
         agent_interface_format=sc2_env.parse_agent_interface_format(
             feature_screen=self._resolution, feature_minimap=self._resolution)
         tprint("Creating game with seed %d." % self._random_seed)

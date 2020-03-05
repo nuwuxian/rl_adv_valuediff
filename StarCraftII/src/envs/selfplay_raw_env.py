@@ -61,12 +61,16 @@ class SC2SelfplayRawEnv(gym.Env):
     observation = [timesteps[0].observation, timesteps[1].observation]
     reward = float(timesteps[0].reward)
     done = timesteps[0].last()
+    info = {}
     if done:
       self._reseted = False
       if self._tie_to_lose and reward == 0:
         reward = -1.0
       tprint("Episode Done. Outcome %f" % reward)
-    info = {}
+    if reward > 0:
+        info['winning'] = True
+    else:
+        info['winning'] = False
     return (observation, reward, done, info)
 
   def reset(self):
