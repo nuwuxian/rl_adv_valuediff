@@ -162,4 +162,4 @@ class ResourceActions(object):
                 (u.orders[0].ability_id == ABILITY.HARVEST_GATHER_DRONE.value and
                  u.orders[0].target_tag in extractor_tags))
         ]
-        return len(workers) > 0
+        return len(workers) > 0 and len(dc.minerals) > 0
