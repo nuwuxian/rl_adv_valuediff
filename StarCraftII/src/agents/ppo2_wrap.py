@@ -102,7 +102,7 @@ class Adv_Model(object):
     ratio = tf.exp(OLDNEGLOGPAC - neglogpac)
     pg_losses = (self.coef_abs_ph * abs_ADV + self.coef_opp_ph * opp_ADV
                  + self.coef_adv_ph * ADV) * ratio
-    pg_losses2 = (self.coef_adv_ph * abs_ADV + self.coef_opp_ph * opp_ADV
+    pg_losses2 = (self.coef_ads_ph * abs_ADV + self.coef_opp_ph * opp_ADV
                  + self.coef_adv_ph * ADV) * tf.clip_by_value(ratio, 1.0 - CLIPRANGE,
                                          1.0 + CLIPRANGE)
     pg_loss = tf.reduce_mean(tf.maximum(pg_losses, pg_losses2))
