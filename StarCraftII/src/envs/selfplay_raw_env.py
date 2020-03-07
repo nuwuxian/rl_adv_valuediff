@@ -67,10 +67,10 @@ class SC2SelfplayRawEnv(gym.Env):
       if self._tie_to_lose and reward == 0:
         reward = -1.0
       tprint("Episode Done. Outcome %f" % reward)
-    if reward > 0:
-        info['winning'] = True
-    else:
-        info['winning'] = False
+      if reward > 0:
+         info['winning'] = True
+      else:
+         info['winning'] = False
     return (observation, reward, done, info)
 
   def reset(self):
