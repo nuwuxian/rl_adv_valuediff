@@ -11,7 +11,9 @@ from envs.common.const import ALLY_TYPE
 
 
 class RewardShapingWrapperV1(gym.Wrapper):
-
+    """
+    reward shaping 1: game reward * 10 + num_iteration that n_combats > n_enemies.
+    """
     def __init__(self, env):
         super(RewardShapingWrapperV1, self).__init__(env)
         assert isinstance(env.observation_space, PySC2RawObservation)
@@ -62,7 +64,9 @@ class RewardShapingWrapperV1(gym.Wrapper):
 
 
 class RewardShapingWrapperV2(gym.Wrapper):
-
+    """
+    reward shaping 2: game reward  + num_selves at each iteration * 0.02.
+    """
     def __init__(self, env):
         super(RewardShapingWrapperV2, self).__init__(env)
         assert isinstance(env.observation_space, PySC2RawObservation)
@@ -112,7 +116,9 @@ class RewardShapingWrapperV2(gym.Wrapper):
 
 
 class KillingRewardWrapper(gym.Wrapper):
-
+    """
+    reward shaping 2: game reward  + num_kills at each iteration * 1e-5.
+    """
     def __init__(self, env):
         super(KillingRewardWrapper, self).__init__(env)
         assert isinstance(env.observation_space, PySC2RawObservation)
