@@ -18,465 +18,502 @@ import zmq
 from gym import spaces
 
 from envs.spaces.mask_discrete import MaskDiscrete
-from agents.utils_tf import explained_variance
 from utils.utils import tprint
 from agents.ppo_agent import Model
+from agents.utils_tf import explained_variance
+from agents.reward_shaping import RewardShapingV1, RewardShapingV2, KillingReward
 
 class Adv_Model(object):
-  def __init__(self, *, policy, value, ob_space, ac_space, nbatch_act, nbatch_train,
-               unroll_length, ent_coef, vf_coef, max_grad_norm, scope_name,
-               value_clip=False):
-    sess = tf.get_default_session()
+    """
+    PPO objective function and training.
+    """
+    def __init__(self, *, policy, value, ob_space, ac_space, nbatch_act, nbatch_train, vf_coef,
+                 unroll_length, ent_coef, max_grad_norm, scope_name, value_clip=False):
+        """
+        :param policy: adversarial policy network and value function.
+        :param value: victim agent value function and diff value function.
+        :param ob_space: observation space.
+        :param ac_space: action space.
+        :param nbatch_act: act model batch size.
+        :param nbatch_train: training model batch size.
+        :param vf_coef: value function loss coefficient.
+        :param unroll_length: training rollout length, used for lstm.
+        :param ent_coef: entropy loss coefficient.
+        :param max_grad_norm: gradient clip.
+        :param scope_name: model scope.
+        :param value_clip: return clip or not.
+        """
+        sess = tf.get_default_session()
 
-    act_model = policy(sess, scope_name, ob_space, ac_space, nbatch_act, 1,
-                       reuse=False)
-    train_model = policy(sess, scope_name, ob_space, ac_space, nbatch_train,
-                         unroll_length, reuse=True)
+        act_model = policy(sess, scope_name, ob_space, ac_space, nbatch_act, 1,
+                           reuse=False)
+        train_model = policy(sess, scope_name, ob_space, ac_space, nbatch_train,
+                             unroll_length, reuse=True)
 
-    # define the value_model / value1_model
-    vact_model = value(sess, scope_name + "_v", ob_space, ac_space, nbatch_act, 1,
-                       reuse=False)
-    vtrain_model = value(sess, scope_name + "_v", ob_space, ac_space, nbatch_train,
-                         unroll_length, reuse=True)
+        # value_model:  opponent agent value function model.
+        # value1_model: diff value function model.
 
-    vact1_model = value(sess, scope_name + "_v1", ob_space, ac_space, nbatch_act, 1,
-                        reuse=False)
-    vtrain1_model = value(sess, scope_name + "_v1", ob_space, ac_space, nbatch_train,
-                          unroll_length, reuse=True)
+        vact_model = value(sess, scope_name + "_v", ob_space, ac_space, nbatch_act, 1,
+                           reuse=False)
+        vtrain_model = value(sess, scope_name + "_v", ob_space, ac_space, nbatch_train,
+                             unroll_length, reuse=True)
 
-    A = tf.placeholder(shape=(nbatch_train,), dtype=tf.int32)
-    ADV = tf.placeholder(tf.float32, [None])
-    R = tf.placeholder(tf.float32, [None])
-    OLDNEGLOGPAC = tf.placeholder(tf.float32, [None])
-    OLDVPRED = tf.placeholder(tf.float32, [None])
-    LR = tf.placeholder(tf.float32, [])
-    CLIPRANGE = tf.placeholder(tf.float32, [])
+        vact1_model = value(sess, scope_name + "_v1", ob_space, ac_space, nbatch_act, 1,
+                            reuse=False)
+        vtrain1_model = value(sess, scope_name + "_v1", ob_space, ac_space, nbatch_train,
+                              unroll_length, reuse=True)
 
-    self.coef_opp_ph = tf.placeholder(tf.float32, [], name="coef_opp_ph")
-    self.coef_adv_ph = tf.placeholder(tf.float32, [], name="coef_adv_ph")
-    self.coef_abs_ph = tf.placeholder(tf.float32, [], name="coef_abs_ph")
+        A = tf.placeholder(shape=(nbatch_train,), dtype=tf.int32)
+        ADV = tf.placeholder(tf.float32, [None])
+        R = tf.placeholder(tf.float32, [None])
+        OLDNEGLOGPAC = tf.placeholder(tf.float32, [None])
+        OLDVPRED = tf.placeholder(tf.float32, [None])
+        LR = tf.placeholder(tf.float32, [])
+        CLIPRANGE = tf.placeholder(tf.float32, [])
 
-    opp_ADV = tf.placeholder(tf.float32, [None])
-    opp_R = tf.placeholder(tf.float32, [None])
-    opp_OLDVPRED = tf.placeholder(tf.float32, [None])
+        self.coef_opp_ph = tf.placeholder(tf.float32, [], name="coef_opp_ph")
+        self.coef_adv_ph = tf.placeholder(tf.float32, [], name="coef_adv_ph")
+        self.coef_abs_ph = tf.placeholder(tf.float32, [], name="coef_abs_ph")
 
-    abs_ADV = tf.placeholder(tf.float32, [None])
-    abs_R = tf.placeholder(tf.float32, [None])
-    abs_OLDVPRED = tf.placeholder(tf.float32, [None])
+        opp_ADV = tf.placeholder(tf.float32, [None])
+        opp_R = tf.placeholder(tf.float32, [None])
+        opp_OLDVPRED = tf.placeholder(tf.float32, [None])
 
-    neglogpac = train_model.pd.neglogp(A)
-    entropy = tf.reduce_mean(train_model.pd.entropy())
+        abs_ADV = tf.placeholder(tf.float32, [None])
+        abs_R = tf.placeholder(tf.float32, [None])
+        abs_OLDVPRED = tf.placeholder(tf.float32, [None])
 
-    vpred = train_model.vf
-    vpredclipped = OLDVPRED + tf.clip_by_value(train_model.vf - OLDVPRED,
-                                               -CLIPRANGE, CLIPRANGE)
-    vf_losses1 = tf.square(vpred - R)
-    if value_clip:
-      vf_losses2 = tf.square(vpredclipped - R)
-      vf_loss = .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
-    else:
-      vf_loss = .5 * tf.reduce_mean(vf_losses1)
+        neglogpac = train_model.pd.neglogp(A)
+        entropy = tf.reduce_mean(train_model.pd.entropy())
 
-    # opp value_loss
-    opp_vpred = vtrain_model.vf
-    opp_vpredclipped = opp_OLDVPRED + tf.clip_by_value(vtrain_model.vf - opp_OLDVPRED,
-                                               -CLIPRANGE, CLIPRANGE)
-    opp_vf_losses1 = tf.square(opp_vpred - opp_R)
-    if value_clip:
-      opp_vf_losses2 = tf.square(opp_vpredclipped - opp_R)
-      opp_vf_loss = .5 * tf.reduce_mean(tf.maximum(opp_vf_losses1, opp_vf_losses2))
-    else:
-      opp_vf_loss = .5 * tf.reduce_mean(opp_vf_losses1)
+        vpred = train_model.vf
+        vpredclipped = OLDVPRED + tf.clip_by_value(train_model.vf - OLDVPRED,
+                                                   -CLIPRANGE, CLIPRANGE)
+        vf_losses1 = tf.square(vpred - R)
+        if value_clip:
+          vf_losses2 = tf.square(vpredclipped - R)
+          vf_loss = .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
+        else:
+          vf_loss = .5 * tf.reduce_mean(vf_losses1)
 
-    # diff value loss
-    diff_vpred = vtrain1_model.vf
-    diff_vpredclipped = abs_OLDVPRED + tf.clip_by_value(vtrain1_model.vf - abs_OLDVPRED,
-                                                       -CLIPRANGE, CLIPRANGE)
-    diff_vf_losses1 = tf.square(diff_vpred - abs_R)
-    if value_clip:
-      diff_vf_losses2 = tf.square(diff_vpredclipped - abs_R)
-      diff_vf_loss = .5 * tf.reduce_mean(tf.maximum(diff_vf_losses1, diff_vf_losses2))
-    else:
-      diff_vf_loss = .5 * tf.reduce_mean(diff_vf_losses1)
+        # opp value_loss
+        opp_vpred = vtrain_model.vf
+        opp_vpredclipped = opp_OLDVPRED + tf.clip_by_value(vtrain_model.vf - opp_OLDVPRED, -CLIPRANGE, CLIPRANGE)
+        opp_vf_losses1 = tf.square(opp_vpred - opp_R)
+        if value_clip:
+          opp_vf_losses2 = tf.square(opp_vpredclipped - opp_R)
+          opp_vf_loss = .5 * tf.reduce_mean(tf.maximum(opp_vf_losses1, opp_vf_losses2))
+        else:
+          opp_vf_loss = .5 * tf.reduce_mean(opp_vf_losses1)
 
-    ratio = tf.exp(OLDNEGLOGPAC - neglogpac)
-    pg_losses = (self.coef_abs_ph * abs_ADV + self.coef_opp_ph * opp_ADV
-                 + self.coef_adv_ph * ADV) * ratio
-    pg_losses2 = (self.coef_abs_ph * abs_ADV + self.coef_opp_ph * opp_ADV
-                 + self.coef_adv_ph * ADV) * tf.clip_by_value(ratio, 1.0 - CLIPRANGE,
-                                         1.0 + CLIPRANGE)
-    pg_loss = tf.reduce_mean(tf.maximum(pg_losses, pg_losses2))
+        # diff value loss
+        diff_vpred = vtrain1_model.vf
+        diff_vpredclipped = abs_OLDVPRED + tf.clip_by_value(vtrain1_model.vf - abs_OLDVPRED, -CLIPRANGE, CLIPRANGE)
+        diff_vf_losses1 = tf.square(diff_vpred - abs_R)
+        if value_clip:
+          diff_vf_losses2 = tf.square(diff_vpredclipped - abs_R)
+          diff_vf_loss = .5 * tf.reduce_mean(tf.maximum(diff_vf_losses1, diff_vf_losses2))
+        else:
+          diff_vf_loss = .5 * tf.reduce_mean(diff_vf_losses1)
 
-    approxkl = .5 * tf.reduce_mean(tf.square(neglogpac - OLDNEGLOGPAC))
-    clipfrac = tf.reduce_mean(
-        tf.to_float(tf.greater(tf.abs(ratio - 1.0), CLIPRANGE)))
+        ratio = tf.exp(OLDNEGLOGPAC - neglogpac)
+        pg_losses = (self.coef_abs_ph * abs_ADV + self.coef_opp_ph * opp_ADV
+                     + self.coef_adv_ph * ADV) * ratio
+        pg_losses2 = (self.coef_abs_ph * abs_ADV + self.coef_opp_ph * opp_ADV
+                     + self.coef_adv_ph * ADV) * tf.clip_by_value(ratio, 1.0 - CLIPRANGE, 1.0 + CLIPRANGE)
+        pg_loss = tf.reduce_mean(tf.maximum(pg_losses, pg_losses2))
 
-    # total loss, add value function
-    loss = pg_loss - entropy * ent_coef + vf_loss * vf_coef + \
-           opp_vf_loss * vf_coef + diff_vf_loss * vf_coef
+        approxkl = .5 * tf.reduce_mean(tf.square(neglogpac - OLDNEGLOGPAC))
+        clipfrac = tf.reduce_mean(tf.to_float(tf.greater(tf.abs(ratio - 1.0), CLIPRANGE)))
 
-    params = tf.trainable_variables(scope=scope_name)
-    params += tf.trainable_variables(scope=scope_name + "_v")
-    params += tf.trainable_variables(scope=scope_name + "_v1")
+        # total loss, add value function
+        loss = pg_loss - entropy * ent_coef + vf_loss * vf_coef + \
+               opp_vf_loss * vf_coef + diff_vf_loss * vf_coef
 
-    grads = tf.gradients(loss, params)
-    if max_grad_norm is not None:
-      grads, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
-    grads = list(zip(grads, params))
-    trainer = tf.train.AdamOptimizer(learning_rate=LR, epsilon=1e-5)
-    _train = trainer.apply_gradients(grads)
-    new_params = [tf.placeholder(p.dtype, shape=p.get_shape()) for p in params]
-    param_assign_ops = [p.assign(new_p) for p, new_p in zip(params, new_params)]
+        params = tf.trainable_variables(scope=scope_name)
+        params += tf.trainable_variables(scope=scope_name + "_v")
+        params += tf.trainable_variables(scope=scope_name + "_v1")
 
+        grads = tf.gradients(loss, params)
+        if max_grad_norm is not None:
+          grads, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
+        grads = list(zip(grads, params))
+        trainer = tf.train.AdamOptimizer(learning_rate=LR, epsilon=1e-5)
+        _train = trainer.apply_gradients(grads)
+        new_params = [tf.placeholder(p.dtype, shape=p.get_shape()) for p in params]
+        param_assign_ops = [p.assign(new_p) for p, new_p in zip(params, new_params)]
 
-    # modify train
-    def train(lr, cliprange, coef_opp, coef_adv, coef_abs, obs, returns, dones, actions, values,
-              neglogpacs,  opp_obs, opp_returns, opp_values, abs_returns, abs_values,
-              states=None, opp_states=None, abs_states=None):
-      advs = returns - values
-      advs = (advs - advs.mean()) / (advs.std() + 1e-8)
+        def train(lr, cliprange, coef_opp, coef_adv, coef_abs, obs, returns, dones, actions, values,
+                  neglogpacs,  opp_obs, opp_returns, opp_values, abs_returns, abs_values,
+                  states=None, opp_states=None, abs_states=None):
 
-      opp_advs = opp_returns - opp_values
-      opp_advs = (opp_advs - opp_advs.mean()) / (opp_advs.std() + 1e-8)
+            advs = returns - values
+            advs = (advs - advs.mean()) / (advs.std() + 1e-8)
 
-      abs_advs = abs_returns - abs_values
-      abs_advs = (abs_advs - abs_advs.mean()) / (abs_advs.std() + 1e-8)
+            opp_advs = opp_returns - opp_values
+            opp_advs = (opp_advs - opp_advs.mean()) / (opp_advs.std() + 1e-8)
 
-      if isinstance(ac_space, MaskDiscrete):
-        td_map = {train_model.X:obs[0], train_model.MASK:obs[-1], A:actions,
-                  ADV:advs, R:returns, LR:lr, CLIPRANGE:cliprange,
-                  self.coef_opp_ph:coef_opp, self.coef_adv_ph:coef_adv, self.coef_abs_ph:coef_abs,
-                  OLDNEGLOGPAC:neglogpacs, OLDVPRED:values,
-                  vtrain_model.X:opp_obs[0], vtrain_model.MASK:opp_obs[-1],
-                  opp_ADV:opp_advs, opp_R:opp_returns, opp_OLDVPRED:opp_values,
-                  vtrain1_model.X:opp_obs[0], vtrain1_model.MASK:opp_obs[-1],
-                  abs_ADV:abs_advs, abs_R:abs_returns, abs_OLDVPRED:abs_values}
-      else:
-        td_map = {train_model.X:obs, A:actions, ADV:advs, R:returns, LR:lr,
-                  CLIPRANGE:cliprange, OLDNEGLOGPAC:neglogpacs, OLDVPRED:values,
-                  self.coef_opp_ph: coef_opp, self.coef_adv_ph: coef_adv, self.coef_abs_ph: coef_abs,
-                  opp_ADV:opp_advs, opp_R:opp_returns, opp_OLDVPRED:opp_values,
-                  abs_ADV:abs_advs, abs_R:abs_returns, abs_OLDVPRED:abs_values}
+            abs_advs = abs_returns - abs_values
+            abs_advs = (abs_advs - abs_advs.mean()) / (abs_advs.std() + 1e-8)
 
-      if states is not None:
-        td_map[train_model.STATE] = states
-        td_map[train_model.DONE] = dones
-      if opp_states is not None:
-        td_map[vtrain_model.STATE] = opp_states
-        td_map[vtrain_model.DONE] = dones
+            if isinstance(ac_space, MaskDiscrete):
+                td_map = {train_model.X: obs[0], train_model.MASK: obs[-1], A: actions,
+                          ADV: advs, R:returns, LR:lr, CLIPRANGE:cliprange,
+                          self.coef_opp_ph:coef_opp, self.coef_adv_ph:coef_adv, self.coef_abs_ph:coef_abs,
+                          OLDNEGLOGPAC:neglogpacs, OLDVPRED:values,
+                          vtrain_model.X:opp_obs[0], vtrain_model.MASK:opp_obs[-1],
+                          opp_ADV:opp_advs, opp_R:opp_returns, opp_OLDVPRED:opp_values,
+                          vtrain1_model.X:opp_obs[0], vtrain1_model.MASK:opp_obs[-1],
+                          abs_ADV:abs_advs, abs_R:abs_returns, abs_OLDVPRED:abs_values}
+            else:
+                td_map = {train_model.X:obs, A:actions, ADV:advs, R:returns, LR:lr,
+                          CLIPRANGE:cliprange, OLDNEGLOGPAC:neglogpacs, OLDVPRED:values,
+                          self.coef_opp_ph: coef_opp, self.coef_adv_ph: coef_adv, self.coef_abs_ph: coef_abs,
+                          opp_ADV:opp_advs, opp_R:opp_returns, opp_OLDVPRED:opp_values,
+                          abs_ADV:abs_advs, abs_R:abs_returns, abs_OLDVPRED:abs_values}
 
-      if abs_states is not None:
-        td_map[vtrain1_model.STATE] = abs_states
-        td_map[vtrain1_model.DONE] = dones
+            if states is not None:
+                td_map[train_model.STATE] = states
+                td_map[train_model.DONE] = dones
 
-      return sess.run(
-        [pg_loss, vf_loss, entropy, approxkl, clipfrac, _train],
-        td_map
-      )[:-1]
-    self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy',
-                       'approxkl', 'clipfrac']
+            if opp_states is not None:
+                td_map[vtrain_model.STATE] = opp_states
+                td_map[vtrain_model.DONE] = dones
 
-    def save(save_path):
-      joblib.dump(read_params(), save_path)
+            if abs_states is not None:
+                td_map[vtrain1_model.STATE] = abs_states
+                td_map[vtrain1_model.DONE] = dones
 
-    def load(load_path):
-      loaded_params = joblib.load(load_path)
-      load_params(loaded_params)
+            return sess.run([pg_loss, vf_loss, entropy, approxkl, clipfrac, _train], td_map)[:-1]
 
-    def read_params():
-      return sess.run(params)
+        self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy',
+                           'approxkl', 'clipfrac']
 
-    def load_params(loaded_params):
-      sess.run(param_assign_ops,
-               feed_dict={p : v for p, v in zip(new_params, loaded_params)})
+        def save(save_path):
+            joblib.dump(read_params(), save_path)
 
-    self.train = train
-    self.train_model = train_model
-    self.act_model = act_model
+        def load(load_path):
+            loaded_params = joblib.load(load_path)
+            load_params(loaded_params)
 
-    self.vtrain_model = vtrain_model
-    self.vact_model = vact_model
+        def read_params():
+            return sess.run(params)
 
-    self.vtrain1_model = vtrain1_model
-    self.vact1_model = vact1_model
+        def load_params(loaded_params):
+            sess.run(param_assign_ops, feed_dict={p : v for p, v in zip(new_params, loaded_params)})
 
-    self.step = act_model.step
-    self.value = act_model.value
+        self.train = train
+        self.train_model = train_model
+        self.act_model = act_model
 
-    # Add by xian
-    # add opp value function
-    # add abs value function
-    self.opp_value = vact_model.value
-    self.abs_value = vact1_model.value
+        self.vtrain_model = vtrain_model
+        self.vact_model = vact_model
 
-    self.initial_state = act_model.initial_state
-    self.save = save
-    self.load = load
-    self.read_params = read_params
-    self.load_params = load_params
+        self.vtrain1_model = vtrain1_model
+        self.vact1_model = vact1_model
 
-    tf.global_variables_initializer().run(session=sess)
+        self.step = act_model.step
+        self.value = act_model.value
+
+        self.opp_value = vact_model.value
+        self.abs_value = vact1_model.value
+
+        self.initial_state = act_model.initial_state
+        self.save = save
+        self.load = load
+        self.read_params = read_params
+        self.load_params = load_params
+
+        tf.global_variables_initializer().run(session=sess)
 
 
-# Add by xian
-# redesign ppo actor
-# support two-agent competing
 class PPO_AdvActor(object):
+    """
+    actor or runner.
+    """
+    def __init__(self, env, policy, value, unroll_length, gamma, lam, queue_size=1,
+                 enable_push=True, learner_ip="localhost", port_A="5700", port_B="5701",
+                 reward_shape='none', use_victim_ob=False, victim_model=None):
+        """
+        :param env: environment, selfplay.
+        :param policy: adversarial policy network and value function.
+        :param value: victim agent value function and diff value function.
+        :param unroll_length: n_batch training and training rollout length, used for lstm.
+        :param gamma: discount factor.
+        :param lam: used to compute
+        :param queue_size: use for communicate with learner.
+        :param enable_push: use for communicate with learner.
+        :param learner_ip: ip of learner.
+        :param port_A:
+        :param port_B:
+        :param reward_shape: type of reward shaping.
+        :param use_victim_ob: use victim agent's observation or not.
+        :param victim_model: victim policy model path.
+        """
 
-  def __init__(self, env, policy, value, unroll_length, gamma, lam, queue_size=1,
-               enable_push=True, learner_ip="localhost", port_A="5700", port_B="5701",
-               use_victim_ob=False, victim_model=None):
-    self._env = env
-    self._unroll_length = unroll_length
-    self._lam = lam
-    self._gamma = gamma
-    self._enable_push = enable_push
+        self._env = env
+        self._unroll_length = unroll_length
+        self._lam = lam
+        self._gamma = gamma
+        self._enable_push = enable_push
+        self.reward_shaping = reward_shape
 
-    self.use_victim_ob = use_victim_ob
+        self.use_victim_ob = use_victim_ob
 
-    self._model = Adv_Model(policy=policy, value=value,
-                        scope_name="model",
-                        ob_space=env.observation_space,
-                        ac_space=env.action_space,
-                        nbatch_act=1,
-                        nbatch_train=unroll_length,
-                        unroll_length=unroll_length,
-                        ent_coef=0.01,
-                        vf_coef=0.5,
-                        max_grad_norm=0.5)
+        self._model = Adv_Model(policy=policy, value=value,
+                                scope_name="model",
+                                ob_space=env.observation_space,
+                                ac_space=env.action_space,
+                                nbatch_act=1,
+                                nbatch_train=unroll_length,
+                                unroll_length=unroll_length,
+                                ent_coef=0.01,
+                                vf_coef=0.5,
+                                max_grad_norm=0.5)
 
-    # define the opponent model
-    self._oppo_model = Model(policy=policy,
-                             scope_name="oppo_model",
-                             ob_space=env.observation_space,
-                             ac_space=env.action_space,
-                             nbatch_act=1,
-                             nbatch_train=unroll_length,
-                             unroll_length=unroll_length,
-                             ent_coef=0.01,
-                             vf_coef=0.5,
-                             max_grad_norm=0.5)
+        self._oppo_model = Model(policy=policy,
+                                 scope_name="oppo_model",
+                                 ob_space=env.observation_space,
+                                 ac_space=env.action_space,
+                                 nbatch_act=1,
+                                 nbatch_train=unroll_length,
+                                 unroll_length=unroll_length,
+                                 ent_coef=0.01,
+                                 vf_coef=0.5,
+                                 max_grad_norm=0.5)
 
-    # load victim model
-    if victim_model != None:
-        self._oppo_model.load(victim_model)
+        # TODO: adaptive training victim reward needs change the stored adversarial model.
+        # use zip, still need double check. load victim model, check this part.
+        if victim_model != None:
+            self._oppo_model.load(victim_model)
 
-    self._obs, self._oppo_obs = env.reset()
-    # define the state and oppo_state
-    self._state = self._model.initial_state
-    self._oppo_state = self._oppo_model.initial_state
-
-    # init_states for adversary
-    self.adv_opp_states = self._model.initial_state
-    self.adv_abs_states = self._model.initial_state
-
-    self._done = False
-    self._cum_reward = 0
-
-    self._zmq_context = zmq.Context()
-    self._model_requestor = self._zmq_context.socket(zmq.REQ)
-    self._model_requestor.connect("tcp://%s:%s" % (learner_ip, port_A))
-    if enable_push:
-      self._data_queue = Queue(queue_size)
-      self._push_thread = Thread(target=self._push_data, args=(
-          self._zmq_context, learner_ip, port_B, self._data_queue))
-      self._push_thread.start()
-
-  def run(self):
-    while True:
-      # fetch model
-      t = time.time()
-      self._update_model()
-      tprint("Update model time: %f" % (time.time() - t))
-      t = time.time()
-      # rollout
-      unroll = self._nstep_rollout()
-      if self._enable_push:
-        if self._data_queue.full(): tprint("[WARN]: Actor's queue is full.")
-        self._data_queue.put(unroll)
-        tprint("Rollout time: %f" % (time.time() - t))
-
-  def _nstep_rollout(self):
-
-    mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = \
-        [],[],[],[],[],[]
-
-    # define the opponent observation, rewards, dones
-    mb_opp_obs, mb_opp_returns, mb_opp_values, mb_abs_returns, mb_abs_values = \
-        [],[],[],[],[]
-
-    mb_opp_rewards, mb_abs_rewards = [], []
-
-    mb_states, episode_infos = self._state, []
-    mb_adv_opp_states = self.adv_opp_states
-    mb_adv_abs_states = self.adv_abs_states
-
-    # two multi-agent competition
-    # add opponent actions and values
-    for _ in range(self._unroll_length):
-
-      action, value, self._state, neglogpac = self._model.step(
-          transform_tuple(self._obs, lambda x: np.expand_dims(x, 0)),
-          self._state,
-          np.expand_dims(self._done, 0))
-
-      oppo_action, _, self._oppo_state, _ = self._oppo_model.step(
-        transform_tuple(self._oppo_obs, lambda x: np.expand_dims(x, 0)),
-        self._oppo_state,
-        np.expand_dims(self._done, 0))
-
-      mb_obs.append(transform_tuple(self._obs, lambda x: x.copy()))
-      mb_actions.append(action[0])
-      mb_values.append(value[0])
-      mb_neglogpacs.append(neglogpac[0])
-      mb_dones.append(self._done)
-
-      # Add by Xian, return oppo_action
-      if self.use_victim_ob:
-         mb_opp_obs.append(transform_tuple(self._oppo_obs, lambda x: x.copy()))
-      else:
-         mb_opp_obs.append(transform_tuple(self._obs, lambda x: x.copy()))
-
-      if self.use_victim_ob:
-         obs_oppo = self._oppo_obs
-      else:
-         obs_oppo = self._obs
-
-      values_oppo, self.adv_opp_states = self._model.opp_value(transform_tuple(obs_oppo,
-                   lambda x: np.expand_dims(x, 0)), self.adv_opp_states,
-                   np.expand_dims(self._done, 0))
-      values_abs, self.adv_abs_states = self._model.abs_value(transform_tuple(obs_oppo,
-                   lambda x: np.expand_dims(x, 0)), self.adv_abs_states,
-                   np.expand_dims(self._done, 0))
-
-      mb_opp_values.append(values_oppo[0])
-      mb_abs_values.append(values_abs[0])
-
-      (self._obs, self._oppo_obs), reward, self._done, info \
-          = self._env.step([action[0], oppo_action[0]])
-
-      self._cum_reward += reward
-      if self._done:
-        self._obs, self._oppo_obs = self._env.reset()
+        self._obs, self._oppo_obs = env.reset()
+        # define the state and oppo_state
         self._state = self._model.initial_state
         self._oppo_state = self._oppo_model.initial_state
+
+        # init_states for adversary
         self.adv_opp_states = self._model.initial_state
         self.adv_abs_states = self._model.initial_state
-        # add by xian
-        # calculate the winning rate
-        episode_infos.append({'r': self._cum_reward, 'win': int(info['winning'])})
+
+        self._done = False
         self._cum_reward = 0
 
-      # opp, abs rewards
-      mb_rewards.append(reward)
-      mb_opp_rewards.append(-1.0 * reward)
-      mb_abs_rewards.append(2.0 * reward)
+        self._zmq_context = zmq.Context()
+        self._model_requestor = self._zmq_context.socket(zmq.REQ)
+        self._model_requestor.connect("tcp://%s:%s" % (learner_ip, port_A))
+        if enable_push:
+            self._data_queue = Queue(queue_size)
+            self._push_thread = Thread(target=self._push_data, args=(
+                self._zmq_context, learner_ip, port_B, self._data_queue))
+            self._push_thread.start()
 
-    if isinstance(self._obs, tuple):
-      mb_obs = tuple(np.asarray(obs, dtype=self._obs[0].dtype)
-                     for obs in zip(*mb_obs))
-      mb_opp_obs = tuple(np.asarray(obs, dtype=self._obs[0].dtype)
-                     for obs in zip(*mb_opp_obs))
-    else:
-      mb_obs = np.asarray(mb_obs, dtype=self._obs.dtype)
-      mb_opp_obs = np.asarray(mb_opp_obs, dtype=self._obs.dtype)
+    def run(self):
+        while True:
+            # fetch model
+            t = time.time()
+            self._update_model()
+            tprint("Update model time: %f" % (time.time() - t))
+            t = time.time()
+            # rollout
+            unroll = self._nstep_rollout()
+            if self._enable_push:
+                if self._data_queue.full(): tprint("[WARN]: Actor's queue is full.")
+                self._data_queue.put(unroll)
+                tprint("Rollout time: %f" % (time.time() - t))
 
-    mb_rewards = np.asarray(mb_rewards, dtype=np.float32)
-    mb_actions = np.asarray(mb_actions)
-    mb_values = np.asarray(mb_values, dtype=np.float32)
-    mb_neglogpacs = np.asarray(mb_neglogpacs, dtype=np.float32)
-    mb_dones = np.asarray(mb_dones, dtype=np.bool)
+    def _nstep_rollout(self):
+        mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = [],[],[],[],[],[]
 
-    # Add abs-rewards, abs-dones
-    mb_opp_rewards = np.asarray(mb_opp_rewards, dtype=np.float32)
-    mb_opp_values = np.asarray(mb_opp_values, dtype=np.float32)
+        # define the opponent observation, rewards, dones
+        mb_opp_obs, mb_opp_returns, mb_opp_values, mb_abs_returns, mb_abs_values = [],[],[],[],[]
 
-    mb_abs_rewards = np.asarray(mb_abs_rewards, dtype=np.float32)
-    mb_abs_values = np.asarray(mb_abs_values, dtype=np.float32)
-    last_values = self._model.value(
-        transform_tuple(self._obs, lambda x: np.expand_dims(x, 0)),
-        self._state,
-        np.expand_dims(self._done, 0))
+        mb_opp_rewards, mb_abs_rewards = [], []
 
-    if self.use_victim_ob:
-      opp_last_values, _ = self._model.opp_value(transform_tuple(self._oppo_obs,
-                   lambda x: np.expand_dims(x, 0)), self.adv_opp_states)
-      abs_last_values, _ = self._model.abs_value(transform_tuple(self._oppo_obs,
-                   lambda x: np.expand_dims(x, 0)), self.adv_abs_states)
-    else:
-      opp_last_values, _ = self._model.opp_value(transform_tuple(self._obs,
-                   lambda x: np.expand_dims(x, 0)), self.adv_opp_states)
-      abs_last_values, _ = self._model.abs_value(transform_tuple(self._obs,
-                   lambda x: np.expand_dims(x, 0)), self.adv_abs_states)
+        mb_states, episode_infos = self._state, []
+        mb_adv_opp_states = self.adv_opp_states
+        mb_adv_abs_states = self.adv_abs_states
 
-    mb_returns = np.zeros_like(mb_rewards)
-    mb_advs = np.zeros_like(mb_rewards)
+        # two multi-agent competition
+        # add opponent actions and values
+        for _ in range(self._unroll_length):
+            action, value, self._state, neglogpac = self._model.step(
+                transform_tuple(self._obs, lambda x: np.expand_dims(x, 0)),
+                self._state,
+                np.expand_dims(self._done, 0))
 
-    mb_opp_returns = np.zeros_like(mb_opp_rewards)
-    mb_opp_advs = np.zeros_like(mb_opp_rewards)
+            oppo_action, _, self._oppo_state, _ = self._oppo_model.step(
+                transform_tuple(self._oppo_obs, lambda x: np.expand_dims(x, 0)),
+                self._oppo_state,
+                np.expand_dims(self._done, 0))
 
-    mb_abs_returns = np.zeros_like(mb_abs_rewards)
-    mb_abs_advs = np.zeros_like(mb_abs_rewards)
+            mb_obs.append(transform_tuple(self._obs, lambda x: x.copy()))
+            mb_actions.append(action[0])
+            mb_values.append(value[0])
+            mb_neglogpacs.append(neglogpac[0])
+            mb_dones.append(self._done)
 
-    last_gae_lam = 0
-    opp_last_gae_lam = 0
-    abs_last_gae_lam = 0
+            if self.use_victim_ob:
+                mb_opp_obs.append(transform_tuple(self._oppo_obs, lambda x: x.copy()))
+            else:
+                mb_opp_obs.append(transform_tuple(self._obs, lambda x: x.copy()))
 
-    for t in reversed(range(self._unroll_length)):
-      if t == self._unroll_length - 1:
-        next_nonterminal = 1.0 - self._done
-        next_values = last_values[0]
-        opp_nextvalues = opp_last_values[0]
-        abs_nextvalues = abs_last_values[0]
-      else:
-        next_nonterminal = 1.0 - mb_dones[t + 1]
-        next_values = mb_values[t + 1]
-        opp_nextvalues = mb_opp_values[t + 1]
-        abs_nextvalues = mb_abs_values[t + 1]
+            if self.use_victim_ob:
+                obs_oppo = self._oppo_obs
+            else:
+                obs_oppo = self._obs
 
-      delta = mb_rewards[t] + self._gamma * next_values * next_nonterminal - \
-          mb_values[t]
-      mb_advs[t] = last_gae_lam = delta + self._gamma * self._lam * \
-          next_nonterminal * last_gae_lam
+            values_oppo, self.adv_opp_states = self._model.opp_value(transform_tuple(obs_oppo,
+                                                                                     lambda x: np.expand_dims(x, 0)),
+                                                                     self.adv_opp_states,
+                                                                     np.expand_dims(self._done, 0))
 
-      # opp-delta
-      opp_delta = mb_opp_rewards[t] + self._gamma * opp_nextvalues * next_nonterminal - \
-              mb_opp_values[t]
-      mb_opp_advs[t] = opp_last_gae_lam = opp_delta + self._gamma * self._lam * \
-                                  next_nonterminal * opp_last_gae_lam
-      # abs-delta
-      abs_delta = mb_abs_rewards[t] + self._gamma * abs_nextvalues * next_nonterminal - \
-                  mb_abs_values[t]
-      mb_abs_advs[t] = abs_last_gae_lam = abs_delta + self._gamma * self._lam * \
-                                          next_nonterminal * abs_last_gae_lam
+            values_abs, self.adv_abs_states = self._model.abs_value(transform_tuple(obs_oppo,
+                       lambda x: np.expand_dims(x, 0)), self.adv_abs_states,
+                       np.expand_dims(self._done, 0))
 
-    mb_returns = mb_advs + mb_values
-    mb_opp_returns = mb_opp_advs + mb_opp_values
-    mb_abs_returns = mb_abs_advs + mb_abs_values
+            mb_opp_values.append(values_oppo[0])
+            mb_abs_values.append(values_abs[0])\
 
-    # opp_obs, opp_returns, opp_values, abs_returns, abs_values
-    # states = None, opp_states = None, abs_states = None
-    return (mb_obs, mb_opp_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs,
-            mb_opp_returns, mb_opp_values, mb_abs_returns, mb_abs_values,
-            mb_states, mb_adv_opp_states, mb_adv_abs_states, episode_infos)
+            obs_oppo_t_1 = self._oppo_obs
+            obs_t_1 = self._obs
 
-  def _push_data(self, zmq_context, learner_ip, port_B, data_queue):
-    sender = zmq_context.socket(zmq.PUSH)
-    sender.setsockopt(zmq.SNDHWM, 1)
-    sender.setsockopt(zmq.RCVHWM, 1)
-    sender.connect("tcp://%s:%s" % (learner_ip, port_B))
-    while True:
-      data = data_queue.get()
-      sender.send_pyobj(data)
+            (self._obs, self._oppo_obs), reward, self._done, info \
+                = self._env.step([action[0], oppo_action[0]])
 
-  def _update_model(self):
-      self._model_requestor.send_string("request model")
-      self._model.load_params(self._model_requestor.recv_pyobj())
+            # reward shaping.
+            if self.reward_shaping == 'kill':
+                print('using killing reward...')
+                reward = KillingReward(self._obs, obs_t_1, reward, self._done)
+                oppo_reward = KillingReward(self._oppo_obs, obs_oppo_t_1, -1.0*reward, self._done)
+            elif self.reward_shaping == 'v1':
+                print('using reward shaping v1...')
+                reward = RewardShapingV1(self._obs, obs_t_1, reward, self._done)
+                oppo_reward = RewardShapingV1(self._oppo_obs, obs_oppo_t_1, -1.0*reward, self._done)
+            elif self.reward_shaping == 'v2':
+                print('using reward shaping v2...')
+                reward = RewardShapingV2(self._obs, obs_t_1, reward, self._done)
+                oppo_reward = RewardShapingV2(self._oppo_obs, obs_oppo_t_1, -1.0*reward, self._done)
+            else:
+                oppo_reward = -1.0 * reward
+
+            self._cum_reward += reward
+            if self._done:
+                self._obs, self._oppo_obs = self._env.reset()
+                self._state = self._model.initial_state
+                self._oppo_state = self._oppo_model.initial_state
+                self.adv_opp_states = self._model.initial_state
+                self.adv_abs_states = self._model.initial_state
+                episode_infos.append({'r': self._cum_reward, 'win': int(info['winning'])})
+                self._cum_reward = 0
+
+            # opp, abs rewards
+            mb_rewards.append(reward)
+            mb_opp_rewards.append(oppo_reward)
+            mb_abs_rewards.append((reward - oppo_reward))
+
+        if isinstance(self._obs, tuple):
+            mb_obs = tuple(np.asarray(obs, dtype=self._obs[0].dtype)
+                         for obs in zip(*mb_obs))
+            mb_opp_obs = tuple(np.asarray(obs, dtype=self._obs[0].dtype)
+                         for obs in zip(*mb_opp_obs))
+        else:
+            mb_obs = np.asarray(mb_obs, dtype=self._obs.dtype)
+            mb_opp_obs = np.asarray(mb_opp_obs, dtype=self._obs.dtype)
+
+        mb_rewards = np.asarray(mb_rewards, dtype=np.float32)
+        mb_actions = np.asarray(mb_actions)
+        mb_values = np.asarray(mb_values, dtype=np.float32)
+        mb_neglogpacs = np.asarray(mb_neglogpacs, dtype=np.float32)
+        mb_dones = np.asarray(mb_dones, dtype=np.bool)
+
+        # Add abs-rewards, abs-dones
+        mb_opp_rewards = np.asarray(mb_opp_rewards, dtype=np.float32)
+        mb_opp_values = np.asarray(mb_opp_values, dtype=np.float32)
+
+        mb_abs_rewards = np.asarray(mb_abs_rewards, dtype=np.float32)
+        mb_abs_values = np.asarray(mb_abs_values, dtype=np.float32)
+        last_values = self._model.value(
+            transform_tuple(self._obs, lambda x: np.expand_dims(x, 0)),
+            self._state,
+            np.expand_dims(self._done, 0))
+
+        if self.use_victim_ob:
+          opp_last_values, _ = self._model.opp_value(transform_tuple(self._oppo_obs,
+                       lambda x: np.expand_dims(x, 0)), self.adv_opp_states)
+          abs_last_values, _ = self._model.abs_value(transform_tuple(self._oppo_obs,
+                       lambda x: np.expand_dims(x, 0)), self.adv_abs_states)
+        else:
+          opp_last_values, _ = self._model.opp_value(transform_tuple(self._obs,
+                       lambda x: np.expand_dims(x, 0)), self.adv_opp_states)
+          abs_last_values, _ = self._model.abs_value(transform_tuple(self._obs,
+                       lambda x: np.expand_dims(x, 0)), self.adv_abs_states)
+
+        mb_returns = np.zeros_like(mb_rewards)
+        mb_advs = np.zeros_like(mb_rewards)
+
+        mb_opp_returns = np.zeros_like(mb_opp_rewards)
+        mb_opp_advs = np.zeros_like(mb_opp_rewards)
+
+        mb_abs_returns = np.zeros_like(mb_abs_rewards)
+        mb_abs_advs = np.zeros_like(mb_abs_rewards)
+
+        last_gae_lam = 0
+        opp_last_gae_lam = 0
+        abs_last_gae_lam = 0
+
+        for t in reversed(range(self._unroll_length)):
+            if t == self._unroll_length - 1:
+                next_nonterminal = 1.0 - self._done
+                next_values = last_values[0]
+                opp_nextvalues = opp_last_values[0]
+                abs_nextvalues = abs_last_values[0]
+            else:
+                next_nonterminal = 1.0 - mb_dones[t + 1]
+                next_values = mb_values[t + 1]
+                opp_nextvalues = mb_opp_values[t + 1]
+                abs_nextvalues = mb_abs_values[t + 1]
+
+            delta = mb_rewards[t] + self._gamma * next_values * next_nonterminal - mb_values[t]
+            mb_advs[t] = last_gae_lam = delta + self._gamma * self._lam * next_nonterminal * last_gae_lam
+
+            # opp-delta
+            opp_delta = mb_opp_rewards[t] + self._gamma * opp_nextvalues * next_nonterminal - mb_opp_values[t]
+            mb_opp_advs[t] = opp_last_gae_lam = opp_delta + self._gamma * self._lam * \
+                                                next_nonterminal * opp_last_gae_lam
+            # abs-delta
+            abs_delta = mb_abs_rewards[t] + self._gamma * abs_nextvalues * next_nonterminal - mb_abs_values[t]
+            mb_abs_advs[t] = abs_last_gae_lam = abs_delta + self._gamma * self._lam * \
+                                                next_nonterminal * abs_last_gae_lam
+
+        mb_returns = mb_advs + mb_values
+        mb_opp_returns = mb_opp_advs + mb_opp_values
+        mb_abs_returns = mb_abs_advs + mb_abs_values
+
+        # TODO: check shape.
+        # opp_obs, opp_returns, opp_values, abs_returns, abs_values
+        # states = None, opp_states = None, abs_states = None
+        return (mb_obs, mb_opp_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs,
+                mb_opp_returns, mb_opp_values, mb_abs_returns, mb_abs_values,
+                mb_states, mb_adv_opp_states, mb_adv_abs_states, episode_infos)
+
+    def _push_data(self, zmq_context, learner_ip, port_B, data_queue):
+        sender = zmq_context.socket(zmq.PUSH)
+        sender.setsockopt(zmq.SNDHWM, 1)
+        sender.setsockopt(zmq.RCVHWM, 1)
+        sender.connect("tcp://%s:%s" % (learner_ip, port_B))
+        while True:
+            data = data_queue.get()
+            sender.send_pyobj(data)
+
+    def _update_model(self):
+        self._model_requestor.send_string("request model")
+        self._model.load_params(self._model_requestor.recv_pyobj())
+
 
 # Modified by Xian
 # Adv Learner
 class Adv_Learner(object):
-
   def __init__(self, env, policy, value, unroll_length, lr, clip_range, batch_size,
                ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5, queue_size=8,
                print_interval=100, save_interval=10000, learn_act_speed_ratio=0,
@@ -515,16 +552,17 @@ class Adv_Learner(object):
                         nbatch_act=1,
                         nbatch_train=unroll_length * batch_size,
                         unroll_length=unroll_length,
-                        ent_coef=0.01,
-                        vf_coef=0.5,
-                        max_grad_norm=0.5)
+                        ent_coef=ent_coef,
+                        vf_coef=vf_coef,
+                        max_grad_norm=max_grad_norm)
     if init_model_path is not None: self._model.load(init_model_path)
     self._model_params = self._model.read_params()
     self._unroll_split = unroll_split if self._model.initial_state is None else 1
     assert self._unroll_length % self._unroll_split == 0
     self._data_queue = deque(maxlen=queue_size * self._unroll_split)
     self._data_timesteps = deque(maxlen=200)
-    self._episode_infos = deque(maxlen=24)
+    # TODO make this as an hyper.
+    self._episode_infos = deque(maxlen=4)
     self._num_unrolls = 0
 
     self._zmq_context = zmq.Context()
@@ -616,6 +654,7 @@ class Adv_Learner(object):
         avg_reward = safemean([info['r'] for info in self._episode_infos])
 
         # print the winning rate and number of the games
+        # TODO: check wining rate.
         total_game = len(self._episode_infos)
         winning_rate = sum([info['win'] for info in self._episode_infos]) * 1.0 / total_game
         tprint('Total_Game is %d, Winning_rate is %f' % (total_game, winning_rate))
@@ -703,9 +742,9 @@ class Adv_Learner(object):
       receiver.send_pyobj(self._model_params)
 
 
-
 def safemean(xs):
   return np.nan if len(xs) == 0 else np.mean(xs)
+
 
 def transform_tuple(x, transformer):
   if isinstance(x, tuple):
@@ -713,6 +752,7 @@ def transform_tuple(x, transformer):
   else:
     return transformer(x)
 # Add function
+
 
 def get_schedule_fn(value_schedule, schedule):
   """

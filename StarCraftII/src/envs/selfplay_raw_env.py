@@ -60,6 +60,8 @@ class SC2SelfplayRawEnv(gym.Env):
     timesteps = self._sc2_env.step(actions)
     observation = [timesteps[0].observation, timesteps[1].observation]
     reward = float(timesteps[0].reward)
+
+    # TODO: check this float(timesteps[1].reward)
     done = timesteps[0].last()
     info = {}
     if done:

@@ -30,7 +30,7 @@ from utils.utils import print_arguments
 FLAGS = flags.FLAGS
 
 # game environment related hyperparameters.
-flags.DEFINE_enum("job_name", 'learner', ['actor', 'learner', 'eval', 'eval_model'], "Job type.")
+flags.DEFINE_enum("job_name", 'actor', ['actor', 'learner'], "Job type.")
 flags.DEFINE_string("learner_ip", "localhost", "Learner IP address.")
 flags.DEFINE_string("port_A", "5700", "Port for transporting model.")
 flags.DEFINE_string("port_B", "5701", "Port for transporting data.")
@@ -43,13 +43,10 @@ flags.DEFINE_boolean("use_all_combat_actions", False, "Use all combat actions.")
 flags.DEFINE_boolean("use_region_features", False, "Use region features")
 flags.DEFINE_boolean("use_action_mask", True, "Use region-wise combat.")
 # reward shaping
-flags.DEFINE_boolean("use_reward_shaping", False, "Use reward shaping.")
 flags.DEFINE_string("reward_shaping_type", "kill", "type of reward shaping.")
 
 # opponent model related hyperparameters.
-flags.DEFINE_string("opp_model_path", '../target-agent/checkpoint-100000', "Opponent Model Path")
-flags.DEFINE_integer("model_cache_size", 300, "Opponent model cache size.") # not use ??
-flags.DEFINE_float("model_cache_prob", 0.05, "Opponent model cache probability.") # not use ??
+flags.DEFINE_string("opp_model_path", '../../target-agent/checkpoint-100000', "Opponent Model Path")
 flags.DEFINE_boolean("use_victim_ob", False, "whether use victim obs")
 
 # loss function related hyperparameters
@@ -57,7 +54,7 @@ flags.DEFINE_float("discount_gamma", 0.998, "Discount factor.")
 flags.DEFINE_float("lambda_return", 0.95, "Lambda return factor.")
 flags.DEFINE_float("clip_range", 0.1, "Clip range for PPO.")
 flags.DEFINE_float("ent_coef", 0.01, "Coefficient for the entropy term.")
-flags.DEFINE_float("vf_coef", 0.5, "Coefficient for the value loss.") # delete
+flags.DEFINE_float("vf_coef", 0.5, "Coefficient for the value loss.")
 
 flags.DEFINE_integer("vic_coef_init", 1, "vic_coef_values")
 flags.DEFINE_string("vic_coef_sch", 'const', "vic_coef_function")
@@ -71,15 +68,15 @@ flags.DEFINE_enum("policy", 'mlp', ['mlp', 'lstm'], "Job type.")
 flags.DEFINE_enum("value", 'mlp', ['mlp', 'lstm'], "Value type")
 
 # learning process.
-flags.DEFINE_integer("unroll_length", 128, "Length of rollout steps.")
-flags.DEFINE_integer("learner_queue_size", 1024, "Size of learner's unroll queue.") # what is is?
+flags.DEFINE_integer("unroll_length", 128, "Length of rollout steps.") # training batch size for mlp.
+flags.DEFINE_integer("learner_queue_size", 256, "Size of learner's unroll queue.") # what it is?
 flags.DEFINE_integer("game_steps_per_episode", 43200, "Maximum steps per episode.")
-flags.DEFINE_integer("batch_size", 4, "Batch size.")
+flags.DEFINE_integer("batch_size", 4, "Batch size.") # batch_size * unroll_length
 flags.DEFINE_float("learning_rate", 1e-5, "Learning rate.")
 
 # save and print.
 flags.DEFINE_string("init_model_path", None, "Initial model path.")
-flags.DEFINE_string("save_dir", "../checkpoints/", "Dir to save models to")
+flags.DEFINE_string("save_dir", "../../checkpoints/", "Dir to save models to")
 flags.DEFINE_integer("save_interval", 50000, "Model saving frequency.")
 flags.DEFINE_integer("print_interval", 1000, "Print train cost frequency.")
 
@@ -111,16 +108,6 @@ def create_env(difficulty, random_seed=None):
                     tie_to_lose=False,
                     game_steps_per_episode=FLAGS.game_steps_per_episode,
                     random_seed=random_seed)
-    if FLAGS.use_reward_shaping:
-        if FLAGS.reward_shaping_type == 'kill':
-            print('using killing reward...')
-            env = KillingRewardWrapper(env)
-        elif FLAGS.reward_shaping_type == 'v1':
-            print('using reward shaping v1...')
-            env = RewardShapingWrapperV1(env)
-        else:
-            print('using reward shaping v2...')
-            env = RewardShapingWrapperV2(env)
 
     env = ZergActionWrapper(env,
                             game_version=FLAGS.game_version,
@@ -145,16 +132,6 @@ def create_selfplay_env(random_seed=None):
                             disable_fog=FLAGS.disable_fog,
                             game_steps_per_episode=FLAGS.game_steps_per_episode,
                             random_seed=random_seed)
-    if FLAGS.use_reward_shaping:
-        if FLAGS.reward_shaping_type == 'kill':
-            print('using killing reward...')
-            env = KillingRewardWrapper(env)
-        elif FLAGS.reward_shaping_type == 'v1':
-            print('using reward shaping v1...')
-            env = RewardShapingWrapperV1(env)
-        else:
-            print('using reward shaping v2...')
-            env = RewardShapingWrapperV2(env)
 
     env = ZergPlayerActionWrapper(player=0,
                                   env=env,
@@ -206,6 +183,7 @@ def start_actor():
                          learner_ip=FLAGS.learner_ip,
                          port_A=FLAGS.port_A,
                          port_B=FLAGS.port_B,
+                         reward_shape=FLAGS.reward_shaping_type,
                          use_victim_ob=FLAGS.use_victim_ob,
                          victim_model=FLAGS.opp_model_path)
 
@@ -215,7 +193,7 @@ def start_actor():
 
 def start_learner():
     tf_config()
-    # does the difficulty matters.
+    # does the difficulty matters ??
     env = create_env('1', GAME_SEED)
     policy = {'lstm': LstmPolicy,
             'mlp': MlpPolicy}[FLAGS.policy]
