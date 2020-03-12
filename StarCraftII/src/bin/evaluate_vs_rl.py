@@ -121,6 +121,9 @@ def evaluate(game_seed):
         raise NotImplementedError
 
     try:
+        win_games = 0
+        loss_games = 0
+        tie_games = 0
         victim_agent = create_ppo_agent(env, FLAGS.victim_path, "opponent_model")
         cum_return = 0.0
         action_counts = [0] * env.action_space.n # number of possible actions.
@@ -136,20 +139,27 @@ def evaluate(game_seed):
                     action_counts[action_0] += 1
                     cum_return += reward
                     step_id += 1
-              print("Evaluated %d/%d Episodes Avg Return %f Avg Winning Rate %f" % (
-                  i + 1, FLAGS.num_episodes, cum_return / (i + 1),
-                  ((cum_return / (i + 1)) + 1) / 2.0))
-        return ((cum_return / (FLAGS.num_episodes)) + 1) / 2.0
+              if done:
+                  if reward == 1:
+                      win_games += 1
+                  elif reward == -1:
+                      loss_games += 1
+                  else:
+                      tie_games += 1
+        print("Evaluated %d/%d Episodes Avg Return %f Avg Winning Rate %f Win %d Lose %d tie %d" %
+              (i + 1, FLAGS.num_episodes, cum_return / (i + 1),
+               ((cum_return / (i + 1)) + 1) / 2.0, win_games, loss_games, tie_games))
+        return (((cum_return / (FLAGS.num_episodes)) + 1) / 2.0, cum_return, win_games, loss_games, tie_games)
     except KeyboardInterrupt: pass
     finally: env.close()
 
 
 def main(argv):
     logging.set_verbosity(logging.ERROR)
-    winning_rate = evaluate(GAME_SEED)
+    winning_info = evaluate(GAME_SEED)
     victim = FLAGS.victim_path.split('/')[-1]
     model = FLAGS.model_path.split('/')[-1]
-    np.save(os.path.join(SAVE_PATH, victim+'_'+model+'_'+FLAGS.difficulty), winning_rate)
+    np.save(os.path.join(SAVE_PATH, victim+'_'+model+'_'+FLAGS.difficulty), winning_info)
 
 
 if __name__ == '__main__':
