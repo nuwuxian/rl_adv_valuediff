@@ -53,14 +53,14 @@ class Adv_Model(object):
         # value_model:  opponent agent value function model.
         # value1_model: diff value function model.
 
-        vact_model = value(sess, scope_name + "_v", ob_space, ac_space, nbatch_act, 1,
+        vact_model = value(sess, "oppo_value", ob_space, ac_space, nbatch_act, 1,
                            reuse=False)
-        vtrain_model = value(sess, scope_name + "_v", ob_space, ac_space, nbatch_train,
+        vtrain_model = value(sess, "oppo_value", ob_space, ac_space, nbatch_train,
                              unroll_length, reuse=True)
 
-        vact1_model = value(sess, scope_name + "_v1", ob_space, ac_space, nbatch_act, 1,
+        vact1_model = value(sess, "diff_value", ob_space, ac_space, nbatch_act, 1,
                             reuse=False)
-        vtrain1_model = value(sess, scope_name + "_v1", ob_space, ac_space, nbatch_train,
+        vtrain1_model = value(sess, "diff_value", ob_space, ac_space, nbatch_train,
                               unroll_length, reuse=True)
 
         A = tf.placeholder(shape=(nbatch_train,), dtype=tf.int32)
@@ -131,8 +131,8 @@ class Adv_Model(object):
                opp_vf_loss * vf_coef + diff_vf_loss * vf_coef
 
         params = tf.trainable_variables(scope=scope_name)
-        params += tf.trainable_variables(scope=scope_name + "_v")
-        params += tf.trainable_variables(scope=scope_name + "_v1")
+        params += tf.trainable_variables(scope="oppo_value")
+        params += tf.trainable_variables(scope="diff_value")
 
         grads = tf.gradients(loss, params)
         if max_grad_norm is not None:
@@ -282,7 +282,6 @@ class PPO_AdvActor(object):
                                  vf_coef=0.5,
                                  max_grad_norm=0.5)
 
-        # TODO: adaptive training victim reward needs change the stored adversarial model.
         # use zip, still need double check. load victim model, check this part.
         if victim_model != None:
             self._oppo_model.load(victim_model)
@@ -315,7 +314,7 @@ class PPO_AdvActor(object):
             self._update_model()
             tprint("Update model time: %f" % (time.time() - t))
             t = time.time()
-            # rollout
+            # rollout, batch_size: unroll_length
             unroll = self._nstep_rollout()
             if self._enable_push:
                 if self._data_queue.full(): tprint("[WARN]: Actor's queue is full.")
@@ -336,6 +335,11 @@ class PPO_AdvActor(object):
 
         # two multi-agent competition
         # add opponent actions and values
+        units_t_1 = []
+        units_oppo_t_1 = []
+        kill_t_1 = 0
+        kill_oppo_t_1 = 0
+
         for _ in range(self._unroll_length):
             action, value, self._state, neglogpac = self._model.step(
                 transform_tuple(self._obs, lambda x: np.expand_dims(x, 0)),
@@ -373,29 +377,33 @@ class PPO_AdvActor(object):
                        np.expand_dims(self._done, 0))
 
             mb_opp_values.append(values_oppo[0])
-            mb_abs_values.append(values_abs[0])\
-
-            obs_oppo_t_1 = self._oppo_obs
-            obs_t_1 = self._obs
+            mb_abs_values.append(values_abs[0])
 
             (self._obs, self._oppo_obs), reward, self._done, info \
                 = self._env.step([action[0], oppo_action[0]])
 
+            units_t = info['units'][0]
+            units_oppo_t = info['units'][1]
+            kill_t = info['killing'][0]
+            kill_oppo_t = info['killing'][1]
+
             # reward shaping.
             if self.reward_shaping == 'kill':
-                print('using killing reward...')
-                reward = KillingReward(self._obs, obs_t_1, reward, self._done)
-                oppo_reward = KillingReward(self._oppo_obs, obs_oppo_t_1, -1.0*reward, self._done)
+                reward = KillingReward(kill_t, kill_t_1, reward, self._done)
+                oppo_reward = KillingReward(kill_oppo_t, kill_oppo_t_1, info['oppo_reward'], self._done)
             elif self.reward_shaping == 'v1':
-                print('using reward shaping v1...')
-                reward = RewardShapingV1(self._obs, obs_t_1, reward, self._done)
-                oppo_reward = RewardShapingV1(self._oppo_obs, obs_oppo_t_1, -1.0*reward, self._done)
+                reward = RewardShapingV1(units_t, units_t_1, reward, self._done)
+                oppo_reward = RewardShapingV1(units_oppo_t, units_oppo_t_1, info['oppo_reward'], self._done)
             elif self.reward_shaping == 'v2':
-                print('using reward shaping v2...')
-                reward = RewardShapingV2(self._obs, obs_t_1, reward, self._done)
-                oppo_reward = RewardShapingV2(self._oppo_obs, obs_oppo_t_1, -1.0*reward, self._done)
+                reward = RewardShapingV1(units_t, units_t_1, reward, self._done)
+                oppo_reward = RewardShapingV1(units_oppo_t, units_oppo_t_1, info['oppo_reward'], self._done)
             else:
-                oppo_reward = -1.0 * reward
+                oppo_reward = info['oppo_reward']
+
+            units_t_1 = units_t
+            units_oppo_t_1 = units_oppo_t
+            kill_t_1 = kill_t
+            kill_oppo_t_1 = kill_oppo_t
 
             self._cum_reward += reward
             if self._done:
@@ -490,7 +498,7 @@ class PPO_AdvActor(object):
         mb_opp_returns = mb_opp_advs + mb_opp_values
         mb_abs_returns = mb_abs_advs + mb_abs_values
 
-        # TODO: check shape.
+        # Shape: [unroll_length, XX]. batch_size: unroll_length
         # opp_obs, opp_returns, opp_values, abs_returns, abs_values
         # states = None, opp_states = None, abs_states = None
         return (mb_obs, mb_opp_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs,
@@ -511,15 +519,18 @@ class PPO_AdvActor(object):
         self._model.load_params(self._model_requestor.recv_pyobj())
 
 
-# Modified by Xian
 # Adv Learner
 class Adv_Learner(object):
   def __init__(self, env, policy, value, unroll_length, lr, clip_range, batch_size,
                ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5, queue_size=8,
                print_interval=100, save_interval=10000, learn_act_speed_ratio=0,
-               unroll_split=8, save_dir=None, init_model_path=None,
+               unroll_split=8, save_dir=None, init_model_path=None, max_episode=4,
                port_A="5700", port_B="5701", coef_opp_init=1, coef_opp_schedule='const',
                coef_adv_init=1,  coef_adv_schedule='const', coef_abs_init=1, coef_abs_schedule='const'):
+    """
+     queue_size: maximum queue size per update.
+     max_episode: maximum games per update.
+    """
 
     assert isinstance(env.action_space, spaces.Discrete)
     if isinstance(lr, float): lr = constfn(lr)
@@ -561,8 +572,7 @@ class Adv_Learner(object):
     assert self._unroll_length % self._unroll_split == 0
     self._data_queue = deque(maxlen=queue_size * self._unroll_split)
     self._data_timesteps = deque(maxlen=200)
-    # TODO make this as an hyper.
-    self._episode_infos = deque(maxlen=4)
+    self._episode_infos = deque(maxlen=max_episode)
     self._num_unrolls = 0
 
     self._zmq_context = zmq.Context()
@@ -636,6 +646,8 @@ class Adv_Learner(object):
       opp_obs, opp_returns, opp_values, abs_returns, abs_values, \
       states, opp_states, abs_states = batch
 
+      print('%d None zero diff out of %d total games.' %(abs_values.shape[0], np.where(abs_values!=0)[0].shape[0]))
+
       loss.append(self._model.train(lr_now, clip_range_now, coef_opp_now, coef_adv_now, coef_abs_now,
                                     obs, returns, dones, actions, values, neglogpacs, opp_obs,
                                     opp_returns, opp_values, abs_returns, abs_values,
@@ -654,11 +666,9 @@ class Adv_Learner(object):
         avg_reward = safemean([info['r'] for info in self._episode_infos])
 
         # print the winning rate and number of the games
-        # TODO: check wining rate.
         total_game = len(self._episode_infos)
         winning_rate = sum([info['win'] for info in self._episode_infos]) * 1.0 / total_game
         tprint('Total_Game is %d, Winning_rate is %f' % (total_game, winning_rate))
-
 
         tprint("Update: %d	Train-fps: %.1f	Rollout-fps: %.1f	"
                "Explained-var: %.5f	Avg-reward %.2f	Policy-loss: %.5f	"

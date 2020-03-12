@@ -60,10 +60,21 @@ class SC2SelfplayRawEnv(gym.Env):
     timesteps = self._sc2_env.step(actions)
     observation = [timesteps[0].observation, timesteps[1].observation]
     reward = float(timesteps[0].reward)
+    if float(timesteps[1].reward) == 1.0:
+        print('...')
 
-    # TODO: check this float(timesteps[1].reward)
     done = timesteps[0].last()
+    if done:
+        print('==================')
+        print(timesteps[0].reward)
+        print(timesteps[1].reward)
+        print('==================')
     info = {}
+    # for reward shaping.
+    info['units'] = [observation[0]['units'], observation[1]['units']]
+    info['killing'] = [observation[0].score_cumulative[5] + observation[0].score_cumulative[6],
+                       observation[1].score_cumulative[5] + observation[1].score_cumulative[6]]
+    info['oppo_reward'] = float(timesteps[1].reward)
     if done:
       self._reseted = False
       if self._tie_to_lose and reward == 0:

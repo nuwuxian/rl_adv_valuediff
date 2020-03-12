@@ -34,6 +34,8 @@ class MlpPolicy(object):
             vf = fc(vf_h3, 'vf', 1)[:,0]
             pi_logit = fc(pi_h3, 'pi', ac_space.n, init_scale=0.01, init_bias=0.0)
             if isinstance(ac_space, MaskDiscrete):
+                # MaskDiscrete: only used unmasked actions.
+                # prevent from sampling masked actions.
                 pi_logit -= (1 - MASK) * 1e30
             self.pd = CategoricalPd(pi_logit)
 

@@ -43,10 +43,10 @@ flags.DEFINE_boolean("use_all_combat_actions", False, "Use all combat actions.")
 flags.DEFINE_boolean("use_region_features", False, "Use region features")
 flags.DEFINE_boolean("use_action_mask", True, "Use region-wise combat.")
 # reward shaping
-flags.DEFINE_string("reward_shaping_type", "kill", "type of reward shaping.")
+flags.DEFINE_string("reward_shaping_type", "none", "type of reward shaping.")
 
 # opponent model related hyperparameters.
-flags.DEFINE_string("opp_model_path", '../../target-agent/checkpoint-100000', "Opponent Model Path")
+flags.DEFINE_string("opp_model_path", '/home/xkw5132/Desktop/rl_newloss/StarCraftII/target-agent/checkpoint-50000', "Opponent Model Path")
 flags.DEFINE_boolean("use_victim_ob", False, "whether use victim obs")
 
 # loss function related hyperparameters
@@ -69,7 +69,8 @@ flags.DEFINE_enum("value", 'mlp', ['mlp', 'lstm'], "Value type")
 
 # learning process.
 flags.DEFINE_integer("unroll_length", 128, "Length of rollout steps.") # training batch size for mlp.
-flags.DEFINE_integer("learner_queue_size", 256, "Size of learner's unroll queue.") # what it is?
+flags.DEFINE_integer("learner_queue_size", 1024, "Size of learner's unroll queue per update.")
+flags.DEFINE_integer("max_episode", 1, "num of games per update.")
 flags.DEFINE_integer("game_steps_per_episode", 43200, "Maximum steps per episode.")
 flags.DEFINE_integer("batch_size", 4, "Batch size.") # batch_size * unroll_length
 flags.DEFINE_float("learning_rate", 1e-5, "Learning rate.")
@@ -219,6 +220,7 @@ def start_learner():
                           init_model_path=FLAGS.init_model_path,
                           port_A=FLAGS.port_A,
                           port_B=FLAGS.port_B,
+                          max_episode=FLAGS.max_episode,
                           coef_opp_init=FLAGS.vic_coef_init,
                           coef_opp_schedule=FLAGS.vic_coef_sch,
                           coef_adv_init=FLAGS.adv_coef_init,
