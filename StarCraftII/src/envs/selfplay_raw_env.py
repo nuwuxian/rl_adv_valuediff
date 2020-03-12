@@ -64,11 +64,11 @@ class SC2SelfplayRawEnv(gym.Env):
         print('...')
 
     done = timesteps[0].last()
-    if done:
-        print('==================')
-        print(timesteps[0].reward)
-        print(timesteps[1].reward)
-        print('==================')
+    # if done:
+    #     print('==================')
+    #     print(timesteps[0].reward)
+    #     print(timesteps[1].reward)
+    #     print('==================')
     info = {}
     # for reward shaping.
     info['units'] = [observation[0]['units'], observation[1]['units']]

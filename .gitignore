@@ -1,6 +1,7 @@
 MuJoCo/agent-zoo/*
 MuJoCo/src/__pycache__/*
 MuJoCo/src/.idea/*
+StarCraftII/.idea/*
 StarCraftII/src/agents/__pycache__/*
 StarCraftII/src/bin/__pycache__/*
 StarCraftII/src/envs/actions/__pycache__/*
