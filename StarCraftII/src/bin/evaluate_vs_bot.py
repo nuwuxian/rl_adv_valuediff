@@ -19,8 +19,8 @@ from agents.ppo_policies import LstmPolicy, MlpPolicy
 from agents.ppo_agent import PPOAgent
 
 FLAGS = flags.FLAGS
-flags.DEFINE_integer("num_episodes", 10, "Number of episodes to evaluate.")
-flags.DEFINE_string("model_path", None, "Filepath to load initial model.")
+flags.DEFINE_integer("num_episodes", 4, "Number of episodes to evaluate.")
+flags.DEFINE_string("model_path", '../../target-agent/checkpoint-100000', "Filepath to load initial model.")
 flags.DEFINE_boolean("disable_fog", False, "Disable fog-of-war.")
 flags.DEFINE_enum("difficulty", '1',
                   ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'],
@@ -36,7 +36,7 @@ flags.DEFINE_boolean("use_region_features", False, "Use region features")
 flags.DEFINE_boolean("use_action_mask", True, "Use action mask or not.")
 flags.FLAGS(sys.argv)
 
-SAVE_PATH = '../../results/bot_results'
+SAVE_PATH = '../../results/bot'
 GAME_SEED = 1234
 
 
@@ -76,7 +76,7 @@ def create_ppo_agent(env):
     # define policy network type.
     policy = {'lstm': LstmPolicy, 'mlp': MlpPolicy}[FLAGS.policy]
     # define the ppo agent.
-    agent = PPOAgent(env=env, policy=policy, model_path=FLAGS.model_path)
+    agent = PPOAgent(env=env, policy=policy, model_path=FLAGS.model_path, scope_name='model')
     return agent
 
 

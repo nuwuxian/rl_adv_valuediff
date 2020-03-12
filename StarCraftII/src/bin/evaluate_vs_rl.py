@@ -26,12 +26,12 @@ from agents.keyboard_agent import KeyboardAgent
 
 FLAGS = flags.FLAGS
 # total time steps.
-flags.DEFINE_integer("num_episodes", 50, "Number of episodes to evaluate.")
+flags.DEFINE_integer("num_episodes", 4, "Number of episodes to evaluate.")
 flags.DEFINE_enum("difficulty", '1',
                   ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'],
                   "Bot's strength.")
-flags.DEFINE_string("model_path", "/home/xkw5132/checkpoints/checkpoint-3200000", "Filepath to load initial model.")
-flags.DEFINE_string("victim_path", "/home/xkw5132/wenbo/rl_newloss/StarCraftII/target-agent/checkpoint-100000", "victim_path")
+flags.DEFINE_string("model_path", "../../adv_agent/checkpoint-50000", "Filepath to load initial model.")
+flags.DEFINE_string("victim_path", "../../target-agent/checkpoint-100000", "victim_path")
 flags.DEFINE_boolean("disable_fog", False, "Disable fog-of-war.")
 
 flags.DEFINE_enum("agent", 'ppo', ['ppo', 'dqn', 'random', 'keyboard'],
@@ -46,7 +46,7 @@ flags.DEFINE_boolean("use_region_features", False, "Use region features")
 flags.DEFINE_boolean("use_action_mask", True, "Use action mask or not.")
 flags.FLAGS(sys.argv)
 
-SAVE_PATH = '../../results/rl_results'
+SAVE_PATH = '../../results/rl'
 GAME_SEED = 1234
 
 
