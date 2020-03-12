@@ -587,7 +587,6 @@ class Adv_Learner(object):
     self._reply_model_thread.start()
 
   def run(self):
-
     self.coef_opp = get_schedule_fn(self.coef_opp_init, schedule=self.coef_opp_schedule)
     self.coef_adv = get_schedule_fn(self.coef_adv_init, schedule=self.coef_adv_schedule)
     self.coef_abs = get_schedule_fn(self.coef_abs_init, schedule=self.coef_abs_schedule)
@@ -645,8 +644,6 @@ class Adv_Learner(object):
       obs, returns, dones, actions, values, neglogpacs, \
       opp_obs, opp_returns, opp_values, abs_returns, abs_values, \
       states, opp_states, abs_states = batch
-
-      print('%d None zero diff out of %d total games.' %(abs_values.shape[0], np.where(abs_values!=0)[0].shape[0]))
 
       loss.append(self._model.train(lr_now, clip_range_now, coef_opp_now, coef_adv_now, coef_abs_now,
                                     obs, returns, dones, actions, values, neglogpacs, opp_obs,

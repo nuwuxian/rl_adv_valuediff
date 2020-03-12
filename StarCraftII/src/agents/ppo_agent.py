@@ -54,7 +54,6 @@ class Model(object):
       vf_loss = .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
     else:
       vf_loss = .5 * tf.reduce_mean(vf_losses1)
-
     ratio = tf.exp(OLDNEGLOGPAC - neglogpac)
     pg_losses = -ADV * ratio
     pg_losses2 = -ADV * tf.clip_by_value(ratio, 1.0 - CLIPRANGE,
@@ -99,7 +98,6 @@ class Model(object):
       joblib.dump(read_params(), save_path)
 
     def load(load_path):
-      # TODO: check more paramers.
       loaded_params = joblib.load(load_path)
       load_params(loaded_params)
 
@@ -405,10 +403,10 @@ class PPOLearner(object):
 
 class PPOAgent(object):
 
-  def __init__(self, env, policy, model_path=None):
+  def __init__(self, env, policy, scope_name, model_path=None):
     assert isinstance(env.action_space, spaces.Discrete)
     self._model = Model(policy=policy,
-                        scope_name="model",
+                        scope_name=scope_name,
                         ob_space=env.observation_space,
                         ac_space=env.action_space,
                         nbatch_act=1,
@@ -521,13 +519,11 @@ class PPOSelfplayActor(object):
           transform_tuple(self._oppo_obs, lambda x: np.expand_dims(x, 0)),
           self._oppo_state,
           np.expand_dims(self._done, 0))
-
       mb_obs.append(transform_tuple(self._obs, lambda x: x.copy()))
       mb_actions.append(action[0])
       mb_values.append(value[0])
       mb_neglogpacs.append(neglogpac[0])
       mb_dones.append(self._done)
-
       (self._obs, self._oppo_obs), reward, self._done, info = self._env.step(
         [action[0], oppo_action[0]])
       self._cum_reward += reward
@@ -541,7 +537,6 @@ class PPOSelfplayActor(object):
         episode_infos.append({'r': self._cum_reward, 'win': int(info['winning'])})
         self._cum_reward = 0
       mb_rewards.append(reward)
-
     if isinstance(self._obs, tuple):
       mb_obs = tuple(np.asarray(obs, dtype=self._obs[0].dtype)
                      for obs in zip(*mb_obs))
