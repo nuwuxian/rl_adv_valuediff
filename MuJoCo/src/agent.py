@@ -189,6 +189,7 @@ def load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp=Tru
         sess.__enter__()
 
     adv_agent = None
+    # todo: check normalization.
     if adv_ismlp:
         adv_agent = MlpPolicy(sess, ob_space, action_space, n_envs, 1, n_envs, reuse=False)
     else:
@@ -197,6 +198,8 @@ def load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp=Tru
     adv_agent_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='model')
     sess.run(tf.variables_initializer(adv_agent_variables))
     param = load_from_file(param_pkl_path=adv_model_path)
+    # todo: check parameters.
+    # todo load(path)
     setFromFlat(adv_agent_variables, param)
 
     return adv_agent
@@ -207,6 +210,7 @@ class AdvAgent(object):
         self.agent = load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp)
 
     def act(self, observation, reward=None, done=None):
+        # todo change to agent.predict prediction normralization.
         return self.agent.step(obs=observation, deterministic=True)[0]
 
 

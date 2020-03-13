@@ -7,7 +7,7 @@ from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines.common.vec_env.vec_normalize import VecNormalize
 from scheduling import ConstantAnnealer, Scheduler
 from shaping_wrappers import apply_reward_wrapper
-from environment import make_zoo_multi2single_env, Monitor
+from environment import make_zoo_multi2single_env, Monitor, make_adv_multi2single_env
 from logger import setup_logger
 from ppo2_wrap import MyPPO2
 from value import MlpValue, MlpLstmValue
@@ -26,6 +26,10 @@ parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 # which victim agent to use
 parser.add_argument("--vic_agt_id", type=int, default=3)
+
+# adversarial agent path
+parser.add_argument("--adv_path", type=str, default='const')
+parser.add_argument("--adv_ismlp", type=str, default='const')
 
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
@@ -55,6 +59,10 @@ parser.add_argument("--load", type=int, default=0)
 # visualize the video
 parser.add_argument("--render", type=int, default=0)
 args = parser.parse_args()
+
+# Adversarial agent path.
+ADV_AGENT_PATH = args.adv_path
+ADV_ISMLP = args.adv_ismlp
 
 # environment selection
 # game env
@@ -147,7 +155,8 @@ if __name__=="__main__":
         env_name = GAME_ENV
 
         # multi to single
-        venv = SubprocVecEnv([lambda: make_zoo_multi2single_env(env_name, VIC_AGT_ID, REW_SHAPE_PARAMS, scheduler,
+        venv = SubprocVecEnv([lambda: make_adv_multi2single_env(env_name, N_GAME, ADV_AGENT_PATH,
+                                                                REW_SHAPE_PARAMS, scheduler, ADV_ISMLP,
                                                                 reverse=REVERSE) for i in range(N_GAME)])
         # test
         if REVERSE:
@@ -196,7 +205,7 @@ if __name__=="__main__":
                        nminibatches=NBATCHES, noptepochs=NEPOCHS,
                        learning_rate=LR,  verbose=1,
                        n_steps=NSTEPS, gamma=GAMMA, is_mlp=IS_MLP,
-                       env_name=env_name, opp_value=vic_value)
+                       env_name=env_name, opp_value=vic_value, retrain_victim=True)
 
         victim_train(venv, TRAINING_ITER, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
                      use_victim_ob=USE_VIC)

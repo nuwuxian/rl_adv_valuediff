@@ -195,7 +195,7 @@ if __name__=="__main__":
                        nminibatches=NBATCHES, noptepochs=NEPOCHS,
                        learning_rate=LR,  verbose=1,
                        n_steps=NSTEPS, gamma=GAMMA, is_mlp=IS_MLP,
-                       env_name=env_name, opp_value=vic_value)
+                       env_name=env_name, opp_value=vic_value, retrain_victim=False)
 
         Adv_train(venv, TRAINING_ITER, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
                   use_victim_ob=USE_VIC)
