@@ -6,7 +6,7 @@ from gym import Wrapper, RewardWrapper
 
 from stable_baselines.common.vec_env import VecEnvWrapper
 from common import trigger_map
-from agent import make_zoo_agent
+from agent import make_zoo_agent, make_adv_agent
 # from agent import make_zoo_agent, make_trigger_agent
 from collections import Counter
 # running-mean std
@@ -238,6 +238,14 @@ def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, reve
     env = gym.make(env_name)
     zoo_agent = make_zoo_agent(env_name, env.observation_space.spaces[1], env.action_space.spaces[1],
                                tag=tag, version=version)
+
+    return Multi2SingleEnv(env, zoo_agent, reverse, shaping_params, scheduler)
+
+
+def make_adv_multi2single_env(env_name, n_envs, adv_agent_path, shaping_params, scheduler, adv_ismlp, reverse=True):
+    env = gym.make(env_name)
+    zoo_agent = make_adv_agent(env.observation_space.spaces[1], env.action_space.spaces[1], n_envs, adv_agent_path,
+                               adv_ismlp=adv_ismlp)
 
     return Multi2SingleEnv(env, zoo_agent, reverse, shaping_params, scheduler)
 

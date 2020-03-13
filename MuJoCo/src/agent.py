@@ -9,6 +9,8 @@ import gym_compete
 from common import trigger_map, action_map, get_zoo_path
 import tensorflow as tf
 from zoo_utils import MlpPolicyValue, LSTMPolicy, load_from_file, setFromFlat
+from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
+
 
 # Random agent
 class RandomAgent(object):
@@ -20,8 +22,10 @@ class RandomAgent(object):
         action = self.action_space.sample()
         return action
 
+
 def make_random_agent(action_space):
     return RandomAgent(action_space)
+
 
 class TriggerAgent(object):
 
@@ -49,14 +53,18 @@ class TriggerAgent(object):
     def reset(self):
         self.cnt = 0
 
+
 def make_trigger_agent(env_name, ob_space, action_space, trigger=None, end=None):
     return TriggerAgent(env_name, ob_space, action_space, trigger, end)
+
 
 # Victim agent only exhibits victim behavior
 class VictimAgent(object):
 
     def __init__(self, env_name, ob_space, action_space, is_trigger=None, to_action=None, end=40):
-        self.agent = make_zoo_agent(env_name, Box(ob_space.low[action_space.shape[0]:], ob_space.high[action_space.shape[0]:]), action_space, tag=1, scope="victim")
+        self.agent = make_zoo_agent(env_name, Box(ob_space.low[action_space.shape[0]:],
+                                                  ob_space.high[action_space.shape[0]:]),
+                                    action_space, tag=1, scope="victim")
         self.ob_space = ob_space
         self.action_space = action_space
         if is_trigger is None:
@@ -88,9 +96,11 @@ class VictimAgent(object):
     def reset(self):
         self.trigger = False
 
+
 def make_victim_agent(env_name, ob_space, action_space, end=40):
 
     return VictimAgent(env_name, ob_space, action_space, end=end)
+
 
 # Randomly mixed two agents 
 class MixedAgent(object):
@@ -106,6 +116,7 @@ class MixedAgent(object):
             return self.agent2.act(observation, reward, done)
         else:
             return self.agent1.act(observation, reward, done)
+
 
 def make_mixed_agent(agent1, agent2, ratio=0.005):
 
@@ -168,3 +179,37 @@ class ZooAgent(object):
 def make_zoo_agent(env_name, ob_space, action_space, tag=2, version=1, scope=""):
 
     return ZooAgent(env_name, ob_space, action_space, tag, version, scope)
+
+
+def load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp=True):
+    sess = tf.get_default_session()
+    if sess is None:
+        tf_config = tf.ConfigProto(inter_op_parallelism_threads=1, intra_op_parallelism_threads=1)
+        sess = tf.Session(config=tf_config)
+        sess.__enter__()
+
+    adv_agent = None
+    if adv_ismlp:
+        adv_agent = MlpPolicy(sess, ob_space, action_space, n_envs, 1, n_envs, reuse=False)
+    else:
+        adv_agent = MlpLstmPolicy(sess, ob_space, action_space, n_envs, 1, n_envs, reuse=False)
+
+    adv_agent_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='model')
+    sess.run(tf.variables_initializer(adv_agent_variables))
+    param = load_from_file(param_pkl_path=adv_model_path)
+    setFromFlat(adv_agent_variables, param)
+
+    return adv_agent
+
+
+class AdvAgent(object):
+    def __init__(self, ob_space, action_space, n_envs, adv_model_path, adv_ismlp):
+        self.agent = load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp)
+
+    def act(self, observation, reward=None, done=None):
+        return self.agent.step(obs=observation, deterministic=True)[0]
+
+
+def make_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp):
+
+    return AdvAgent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp)

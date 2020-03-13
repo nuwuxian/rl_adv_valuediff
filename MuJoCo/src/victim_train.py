@@ -19,7 +19,7 @@ from value import MlpValue, MlpLstmValue
 ##################
 parser = argparse.ArgumentParser()
 # game env
-parser.add_argument("--env", type=int, default=2)
+parser.add_argument("--env", type=int, default=5)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
@@ -107,10 +107,11 @@ CALLBACK_KEY = 'update'
 CALLBACK_MUL = 16384
 LOG_INTERVAL = 2048
 
+# TODO: enable loading the victim model.
 PRETRAIN_TEMPLETE = "../agent-zoo/%s-pretrained-expert-1000-1000-1e-03.pkl"
 
 # SAVE_DIR AND NAME
-SAVE_DIR = '../agent-zoo/'+ GAME_ENV.split('/')[1] + '_' + str(VIC_AGT_ID)+'_' + ADV_NET + '_' + VIC_NET + '_' + \
+SAVE_DIR = '../victim-agent-zoo/'+ GAME_ENV.split('/')[1] + '_' + str(VIC_AGT_ID)+'_' + ADV_NET + '_' + VIC_NET + '_' + \
            str(COEF_VIC_INIT) + '_' +  COEF_VIC_SCHEDULE + '_' + \
            str(COEF_ADV_INIT) + '_' +  COEF_ADV_SCHEDULE + '_' + \
            str(COEF_DIFF_INIT) + '_' + COEF_DIFF_SCHEDULE + '_' + str(USE_VIC)
@@ -118,12 +119,12 @@ EXP_NAME = str(GAME_SEED)
 
 # choose the victim agent.
 if 'You' in GAME_ENV.split('/')[1]:
-    REVERSE = True
-else:
     REVERSE = False
+else:
+    REVERSE = True
 
 
-def Adv_train(env, total_timesteps, log_interval, callback_key, callback_mul, logger, seed, use_victim_ob):
+def victim_train(env, total_timesteps, log_interval, callback_key, callback_mul, logger, seed, use_victim_ob):
     log_callback = lambda logger, locals, globals: env.log_callback(logger)
     last_log = 0
 
@@ -197,6 +198,6 @@ if __name__=="__main__":
                        n_steps=NSTEPS, gamma=GAMMA, is_mlp=IS_MLP,
                        env_name=env_name, opp_value=vic_value)
 
-        Adv_train(venv, TRAINING_ITER, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
-                  use_victim_ob=USE_VIC)
+        victim_train(venv, TRAINING_ITER, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
+                     use_victim_ob=USE_VIC)
         model.save(os.path.join(out_dir, env_name.split('/')[1]))

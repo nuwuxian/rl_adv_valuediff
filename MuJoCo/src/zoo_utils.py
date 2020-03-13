@@ -290,6 +290,7 @@ class Value(Policy):
             self.observation_ph: observation})
         return v[0]
 
+
 # LSTM_Value
 class LSTM_Value(Policy):
 

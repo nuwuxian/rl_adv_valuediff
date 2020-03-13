@@ -19,11 +19,9 @@ from stable_baselines.common.runners import AbstractEnvRunner
 from zoo_utils import load_from_file, setFromFlat
 from stable_baselines.a2c.utils import total_episode_reward_logger
 from game_utils import infer_next_ph
-from explain_gradient import GradientExp
 from value import MlpLstmValue, MlpValue
 from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 import pdb
-
 
 
 class MyPPO2(ActorCriticRLModel):
