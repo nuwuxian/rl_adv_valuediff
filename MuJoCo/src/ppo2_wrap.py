@@ -14,9 +14,10 @@ from stable_baselines import logger
 
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
 from stable_baselines.common.runners import AbstractEnvRunner
+from stable_baselines.common.policies import MlpLstmPolicy
 
 from agent import get_zoo_path
-from zoo_utils import load_from_file, setFromFlat, MlpPolicyValue, LSTMPolicy
+from zoo_utils import load_from_file, setFromFlat, LSTMPolicy, MlpPolicyValue
 from stable_baselines.a2c.utils import total_episode_reward_logger
 from game_utils import infer_next_ph
 from value import MlpLstmValue, MlpValue
@@ -30,7 +31,7 @@ class MyPPO2(ActorCriticRLModel):
                  coef_abs_init=1, coef_abs_schedule='const', max_grad_norm=0.5, lam=0.95, nminibatches=4,
                  noptepochs=4, cliprange=0.2, verbose=0,  lr_schedule='const', tensorboard_log=None,
                  _init_setup_model=True, policy_kwargs=None, is_mlp=True, full_tensorboard_log=False,
-                 model_saved_loc=None, env_name=None, opp_value=None, retrain_victim=False, VIC_AGT_ID = None):
+                 model_saved_loc=None, env_name=None, opp_value=None, retrain_victim=False, vic_agt_id=None):
 
         """
         :param: policy: policy network and value function.
@@ -114,7 +115,7 @@ class MyPPO2(ActorCriticRLModel):
 
         self.env = env
         self.env_name = env_name
-
+        self.vic_agt_id = vic_agt_id
         self._train_mimic = None
         self.model_saved_loc = model_saved_loc
 
@@ -142,30 +143,6 @@ class MyPPO2(ActorCriticRLModel):
 
         if _init_setup_model:
             self.setup_model()
-        if self.retrain_vicitim:
-            if 'You' in env_name.split('/')[1]:
-                tag = 2
-            # elif 'Kick' in env_name.split('/')[1]:
-            #     tag = 1
-            else:
-                tag = 1
-
-            if env_name == 'multicomp/RunToGoalAnts-v0' or env_name == 'multicomp/RunToGoalHumans-v0' or env_name == 'multicomp/YouShallNotPassHumans-v0':
-                env_path = get_zoo_path(env_name, tag=tag)
-            elif env_name == 'multicomp/KickAndDefend-v0':
-                env_path = get_zoo_path(env_name, tag=tag, version=VIC_AGT_ID)
-            elif env_name == 'multicomp/SumoAnts-v0' or env_name == 'multicomp/SumoHumans-v0':
-                env_path = get_zoo_path(env_name, version=VIC_AGT_ID)
-
-            param = load_from_file(param_pkl_path=env_path)
-            act_variables = tf.get_collection(tf.GraphKeys, scope="vicitim_policy")
-            train_variables = tf.get_collection(tf.GraphKeys, scope="vicitim_policy_train")
-
-            self.sess.run(tf.variables_initializer(act_variables))
-            self.sess.run(tf.variables_initializer(train_variables))
-
-            setFromFlat(act_variables, param)
-            setFromFlat(train_variables, param)
 
     def _get_pretrain_placeholders(self):
         policy = self.act_model
@@ -189,37 +166,47 @@ class MyPPO2(ActorCriticRLModel):
 
                 n_batch_step = None
                 n_batch_train = None
-                if issubclass(self.policy, LSTMPolicy) or issubclass(self.opp_value, MlpLstmValue):
-                    assert self.n_envs % self.nminibatches == 0, "For recurrent policies, " \
-                                                                 "the number of environments run in parallel should be a multiple of nminibatches."
-                    n_batch_step = self.n_envs
-                    n_batch_train = self.n_batch // self.nminibatches
 
                 if self.retrain_vicitim:
+                    if issubclass(self.opp_value, MlpLstmValue):
+                        assert self.n_envs % self.nminibatches == 0, "For recurrent policies, " \
+                                                                     "the number of environments run in parallel should be a multiple of nminibatches."
+                        n_batch_step = self.n_envs
+                        n_batch_train = self.n_batch // self.nminibatches
+
                     if self.env_name in ['multicomp/YouShallNotPassHumans-v0', "multicomp/RunToGoalAnts-v0",
                                          "multicomp/RunToGoalHumans-v0"]:
-                        act_model = self.policy(scope="vicitim_policy", reuse=False,
+                        act_model = MlpPolicyValue(scope="victim_policy", reuse=False,
                                                 ob_space=self.observation_space,
-                                                ac_space=self.action_space,
+                                                ac_space=self.action_space, sess=self.sess,
                                                 hiddens=[64, 64], normalize=False)
                         with tf.variable_scope("train_model", reuse=True,
                                                custom_getter=tf_util.outer_scope_getter("train_model")):
-                            train_model = self.policy(scope="vicitim_policy", reuse=True,
+                            train_model = MlpPolicyValue(scope="victim_policy", reuse=True,
                                                       ob_space=self.observation_space,
-                                                      ac_space=self.action_space,
+                                                      ac_space=self.action_space, sess=self.sess,
                                                       hiddens=[64, 64], normalize=False)
                     else:
-                        act_model = self.policy(scope="vicitim_policy", reuse=False,
+                        n_batch_step = self.n_envs
+                        n_batch_train = self.n_batch // self.nminibatches
+
+                        act_model = LSTMPolicy(scope="victim_policy", reuse=False,
                                                 ob_space=self.observation_space,
-                                                ac_space=self.action_space,
+                                                ac_space=self.action_space, sess=self.sess,
                                                 hiddens=[128, 128], normalize=False)
                         with tf.variable_scope("train_model", reuse=True,
                                                custom_getter=tf_util.outer_scope_getter("train_model")):
-                            train_model = self.policy(scope="vicitim_policy", reuse=True,
+                            train_model = LSTMPolicy(scope="victim_policy", reuse=True,
                                                       ob_space=self.observation_space,
-                                                      ac_space=self.action_space,
+                                                      ac_space=self.action_space, sess=self.sess,
                                                       hiddens=[128, 128], normalize=False)
                 else:
+                    if issubclass(self.policy, MlpLstmPolicy) or issubclass(self.opp_value, MlpLstmValue):
+                        assert self.n_envs % self.nminibatches == 0, "For recurrent policies, " \
+                                                                     "the number of environments run in parallel should be a multiple of nminibatches."
+                        n_batch_step = self.n_envs
+                        n_batch_train = self.n_batch // self.nminibatches
+
                     # action model mask: (n_envs, 1), state * (1-mask), mask=1 means reset state.
                     act_model = self.policy(self.sess, self.observation_space, self.action_space, self.n_envs, 1,
                                             n_batch_step, reuse=False, **self.policy_kwargs)
@@ -232,24 +219,24 @@ class MyPPO2(ActorCriticRLModel):
                                                   self.n_envs // self.nminibatches, self.n_steps, n_batch_train,
                                                   reuse=True, **self.policy_kwargs)
                     # if issubclass(self.policy, MlpPolicyValue):
-                    #     act_model = self.policy(scope="vicitim_policy", reuse=False,
+                    #     act_model = self.policy(scope="victim_policy", reuse=False,
                     #                         ob_space=self.observation_space,
                     #                         ac_space=self.action_space,
                     #                         hiddens=[64, 64], normalize=False)
                     #     with tf.variable_scope("train_model", reuse=True,
                     #                            custom_getter=tf_util.outer_scope_getter("train_model")):
-                    #         train_model = self.policy(scope="vicitim_policy", reuse=True,
+                    #         train_model = self.policy(scope="victim_policy", reuse=True,
                     #                                   ob_space=self.observation_space,
                     #                                   ac_space=self.action_space,
                     #                                   hiddens=[64, 64], normalize=False)
                     # else:
-                    #     act_model = self.policy(scope="vicitim_policy", reuse=False,
+                    #     act_model = self.policy(scope="victim_policy", reuse=False,
                     #                             ob_space=self.observation_space,
                     #                             ac_space=self.action_space,
                     #                             hiddens=[128, 128], normalize=False)
                     #     with tf.variable_scope("train_model", reuse=True,
                     #                            custom_getter=tf_util.outer_scope_getter("train_model")):
-                    #         train_model = self.policy(scope="vicitim_policy", reuse=True,
+                    #         train_model = self.policy(scope="victim_policy", reuse=True,
                     #                                   ob_space=self.observation_space,
                     #                                   ac_space=self.action_space,
                     #                                   hiddens=[128, 128], normalize=False)
@@ -363,7 +350,7 @@ class MyPPO2(ActorCriticRLModel):
                     tf.summary.scalar('clip_factor', self.clipfrac)
                     tf.summary.scalar('loss', loss)
                     if self.retrain_vicitim:
-                        params = tf_util.get_trainable_vars("vicitim_policy_train")
+                        params = tf_util.get_trainable_vars("victim_policy")
                     else:
                         params = tf_util.get_trainable_vars("model")
                     if self.full_tensorboard_log:
@@ -434,6 +421,27 @@ class MyPPO2(ActorCriticRLModel):
                 self.value = act_model.value
                 self.initial_state = act_model.initial_state
                 tf.global_variables_initializer().run(session=self.sess)  # pylint: disable=E1101
+
+                if self.retrain_vicitim:
+                    if 'You' in self.env_name.split('/')[1]:
+                        tag = 2
+                    # elif 'Kick' in env_name.split('/')[1]:
+                    #     tag = 1
+                    else:
+                        tag = 1
+
+                    if self.env_name == 'multicomp/RunToGoalAnts-v0' or self.env_name == 'multicomp/RunToGoalHumans-v0' \
+                            or self.env_name == 'multicomp/YouShallNotPassHumans-v0':
+                        env_path = get_zoo_path(self.env_name, tag=tag)
+                    elif self.env_name == 'multicomp/KickAndDefend-v0':
+                        env_path = get_zoo_path(self.env_name, tag=tag, version=self.vic_agt_id)
+                    elif self.env_name == 'multicomp/SumoAnts-v0' or self.env_name == 'multicomp/SumoHumans-v0':
+                        env_path = get_zoo_path(self.env_name, version=self.vic_agt_id)
+
+                    param = load_from_file(param_pkl_path=env_path)
+                    # tf.trainable_variables only works in the current function.
+                    variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="victim_policy")
+                    setFromFlat(variables, param, self.sess)
 
                 self.summary = tf.summary.merge_all()
 

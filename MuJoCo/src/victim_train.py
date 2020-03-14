@@ -2,7 +2,7 @@ import os
 import argparse
 import gym
 from common import env_list
-from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
+from zoo_utils import MlpPolicyValue, LSTMPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines.common.vec_env.vec_normalize import VecNormalize
 from scheduling import ConstantAnnealer, Scheduler
@@ -28,18 +28,16 @@ parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 parser.add_argument("--vic_agt_id", type=int, default=3)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='/home/xkw5132/rl_results/ccs_data/20200218_104648-1/YouShallNotPassHumans-v0.pkl')
+parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/rl_newloss/MuJoCo/agent-zoo/YouShallNotPassHumans-v0_3_MLP_MLP_1_const_0_const_0_const_False/20200218_104638-0/YouShallNotPassHumans-v0.pkl')
 parser.add_argument("--adv_ismlp", type=bool, default=True)
 
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
-# adv agent network
-parser.add_argument("--adv_net", type=str, default='MLP')
 
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='linear')
 # number of steps / lstm length should be small
-parser.add_argument("--nsteps", type=int, default=2048)
+parser.add_argument("--nsteps", type=int, default=128)
 
 # victim loss coefficient.
 parser.add_argument("--vic_coef_init", type=int, default=1) # positive
@@ -86,8 +84,6 @@ GAMMA = 0.99
 USE_VIC = False
 # victim agent value network
 VIC_NET = args.vic_net
-# adv agent network
-ADV_NET = args.adv_net
 
 # training hyperparameters
 # total training iterations.
@@ -119,7 +115,7 @@ LOG_INTERVAL = 2048
 PRETRAIN_TEMPLETE = "../agent-zoo/%s-pretrained-expert-1000-1000-1e-03.pkl"
 
 # SAVE_DIR AND NAME
-SAVE_DIR = '../victim-agent-zoo/'+ GAME_ENV.split('/')[1] + '_' + str(VIC_AGT_ID)+'_' + ADV_NET + '_' + VIC_NET + '_' + \
+SAVE_DIR = '../victim-agent-zoo/'+ GAME_ENV.split('/')[1] + '_' + str(VIC_AGT_ID)+'_' + VIC_NET + '_' + \
            str(COEF_VIC_INIT) + '_' +  COEF_VIC_SCHEDULE + '_' + \
            str(COEF_ADV_INIT) + '_' +  COEF_ADV_SCHEDULE + '_' + \
            str(COEF_DIFF_INIT) + '_' + COEF_DIFF_SCHEDULE + '_' + str(USE_VIC)
@@ -155,7 +151,7 @@ if __name__=="__main__":
         env_name = GAME_ENV
 
         # multi to single
-        venv = SubprocVecEnv([lambda: make_adv_multi2single_env(env_name, 1, ADV_AGENT_PATH,
+        venv = SubprocVecEnv([lambda: make_adv_multi2single_env(env_name, ADV_AGENT_PATH,
                                                                 REW_SHAPE_PARAMS, scheduler, ADV_ISMLP,
                                                                 reverse=REVERSE) for i in range(N_GAME)])
         # test
@@ -173,14 +169,6 @@ if __name__=="__main__":
         # makedir output
         out_dir, logger = setup_logger(SAVE_DIR, EXP_NAME)
 
-        if ADV_NET == 'MLP':
-            adv_agent = MlpPolicy
-        elif ADV_NET == 'LSTM':
-            adv_agent = MlpLstmPolicy
-        else:
-            print('Unknow adversarial agent network type. Using mlp')
-            adv_agent = MlpPolicy
-
         if VIC_NET == 'MLP':
             IS_MLP = True
             vic_value = MlpValue
@@ -192,7 +180,7 @@ if __name__=="__main__":
             IS_MLP = True
             vic_value = MlpValue
 
-        model = MyPPO2(adv_agent,
+        model = MyPPO2(None,
                        venv,
                        lr_schedule=LR_SCHEDULE,
                        coef_opp_init=COEF_VIC_INIT,

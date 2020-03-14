@@ -26,9 +26,59 @@ def load_from_model(param_pkl_path):
     flat_param = np.concatenate(flat_param, axis=0)
     return flat_param
 
+# MLP
+
+# <tf.Variable 'mlp_policy/retfilter/sum:0' shape=() dtype=float32_ref>
+# <tf.Variable 'mlp_policy/retfilter/sumsq:0' shape=() dtype=float32_ref>
+# <tf.Variable 'mlp_policy/retfilter/count:0' shape=() dtype=float32_ref>
+# <tf.Variable 'mlp_policy/obsfilter/sum:0' shape=(380,) dtype=float32_ref>
+# <tf.Variable 'mlp_policy/obsfilter/sumsq:0' shape=(380,) dtype=float32_ref>
+# <tf.Variable 'mlp_policy/obsfilter/count:0' shape=() dtype=float32_ref>
+
+# <tf.Variable 'victim_policy/vffc1/w:0' shape=(380, 64) dtype=float32_ref>
+# <tf.Variable 'victim_policy/vffc1/b:0' shape=(64,) dtype=float32_ref>
+# <tf.Variable 'victim_policy/vffc2/w:0' shape=(64, 64) dtype=float32_ref>
+# <tf.Variable 'victim_policy/vffc2/b:0' shape=(64,) dtype=float32_ref>
+# <tf.Variable 'victim_policy/vffinal/w:0' shape=(64, 1) dtype=float32_ref>
+# <tf.Variable 'victim_policy/vffinal/b:0' shape=(1,) dtype=float32_ref>
+# <tf.Variable 'victim_policy/polfc1/w:0' shape=(380, 64) dtype=float32_ref>
+# <tf.Variable 'victim_policy/polfc1/b:0' shape=(64,) dtype=float32_ref>
+# <tf.Variable 'victim_policy/polfc2/w:0' shape=(64, 64) dtype=float32_ref>
+# <tf.Variable 'victim_policy/polfc2/b:0' shape=(64,) dtype=float32_ref>
+# <tf.Variable 'victim_policy/polfinal/w:0' shape=(64, 17) dtype=float32_ref>
+# <tf.Variable 'victim_policy/polfinal/b:0' shape=(17,) dtype=float32_ref>
+# <tf.Variable 'victim_policy/logstd:0' shape=(1, 17) dtype=float32_ref>
+
+# LSTM
+# <tf.Variable 'lstm_policy/retfilter/sum:0' shape=() dtype=float32_ref>
+# <tf.Variable 'lstm_policy/retfilter/sumsq:0' shape=() dtype=float32_ref>
+# <tf.Variable 'lstm_policy/retfilter/count:0' shape=() dtype=float32_ref>
+# <tf.Variable 'lstm_policy/obsfilter/sum:0' shape=(137,) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/obsfilter/sumsq:0' shape=(137,) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/obsfilter/count:0' shape=() dtype=float32_ref>
+
+# <tf.Variable 'lstm_policy/fully_connected/weights:0' shape=(137, 128) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/fully_connected/biases:0' shape=(128,) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/lstmv/basic_lstm_cell/kernel:0' shape=(256, 512) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/lstmv/basic_lstm_cell/bias:0' shape=(512,) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/fully_connected_1/weights:0' shape=(128, 1) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/fully_connected_1/biases:0' shape=(1,) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/fully_connected_2/weights:0' shape=(137, 128) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/fully_connected_2/biases:0' shape=(128,) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/lstmp/basic_lstm_cell/kernel:0' shape=(256, 512) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/lstmp/basic_lstm_cell/bias:0' shape=(512,) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/fully_connected_3/weights:0' shape=(128, 8) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/fully_connected_3/biases:0' shape=(8,) dtype=float32_ref>
+# <tf.Variable 'lstm_policy/logstd:0' shape=(1, 8) dtype=float32_ref>
+
 def setFromFlat(var_list, flat_params, sess=None):
     shapes = list(map(lambda x: x.get_shape().as_list(), var_list))
     total_size = np.sum([int(np.prod(shape)) for shape in shapes])
+    if total_size != flat_params.shape[0]:
+        redundant = flat_params.shape[0] - total_size
+        flat_params = flat_params[redundant:]
+        assert flat_params.shape[0] == total_size, \
+            print('Number of variables does not match when loading pretrained victim agents.')
     theta = tf.placeholder(tf.float32, [total_size])
     start = 0
     assigns = []
@@ -53,7 +103,7 @@ class Policy(object):
 
     @property
     def value_flat(self):
-        return self.vpredz
+        return self.vpred
 
     @property
     def obs_ph(self):
@@ -151,7 +201,8 @@ class DiagonalGaussian(object):
         return tf.reduce_sum(self.logstd + .5 * np.log(2.0 * np.pi * np.e), axis=-1)
 
 class MlpPolicyValue(Policy):
-    def __init__(self, scope, *, ob_space, ac_space, hiddens, convs=[], reuse=False, normalize=False):
+    def __init__(self, scope, *, ob_space, ac_space, hiddens, convs=[], sess=None, reuse=False, normalize=False):
+        self.sess = sess
         self.recurrent = False
         self.normalized = normalize
         self.zero_state = np.zeros(1)
@@ -192,7 +243,7 @@ class MlpPolicyValue(Policy):
             self.pd = DiagonalGaussian(mean, logstd)
             self.proba_distribution = self.pd
             self.sampled_action = switch(self.stochastic_ph, self.pd.sample(), self.pd.mode())
-            self.neglogp = self.proba_distribution.neglogp(self.taken_action_ph)
+            self.neglogp = self.proba_distribution.neglogp(self.sampled_action)
             self.policy_proba = [self.proba_distribution.mean, self.proba_distribution.std]
 
     def make_feed_dict(self, observation, taken_action):
@@ -220,19 +271,30 @@ class MlpPolicyValue(Policy):
 
     def step(self, obs, state=None, mask=None, deterministic=False):
         stochastic = not deterministic
-        action, value, neglogp = tf.get_default_session().run([self.sampled_action, self.value_flat, self.neglogp],
-                                               {self.obs_ph: obs, self.stochastic_ph: stochastic})
+        if self.sess==None:
+            action, value, neglogp = tf.get_default_session().run([self.sampled_action, self.value_flat, self.neglogp],
+                                                   {self.obs_ph: obs, self.stochastic_ph: stochastic})
+        else:
+            action, value, neglogp = self.sess.run([self.sampled_action, self.value_flat, self.neglogp],
+                                              {self.obs_ph: obs, self.stochastic_ph: stochastic})
         return action, value, self.initial_state, neglogp
 
     def proba_step(self, obs, state=None, mask=None):
-        return tf.get_default_session().run(self.policy_proba, {self.obs_ph: obs})
+        if self.sess==None:
+            return tf.get_default_session().run(self.policy_proba, {self.obs_ph: obs})
+        else:
+            return self.sess.run(self.policy_proba, {self.obs_ph: obs})
 
     def value(self, obs, state=None, mask=None):
-        return tf.get_default_session().run(self.value_flat, {self.obs_ph: obs})
+        if self.sess==None:
+            return tf.get_default_session().run(self.value_flat, {self.obs_ph: obs})
+        else:
+            return self.sess.run(self.value_flat, {self.obs_ph: obs})
 
 
 class LSTMPolicy(Policy):
-    def __init__(self, scope, *, ob_space, ac_space, hiddens, reuse=False, normalize=False):
+    def __init__(self, scope, *, ob_space, ac_space, hiddens, sess=None, reuse=False, normalize=False):
+        self.sess = sess
         self.recurrent = True
         self.normalized = normalize
         with tf.variable_scope(scope, reuse=reuse):
@@ -295,7 +357,7 @@ class LSTMPolicy(Policy):
             self.pd = DiagonalGaussian(mean, logstd)
             self.proba_distribution = self.pd
             self.sampled_action = switch(self.stochastic_ph, self.pd.sample(), self.pd.mode())
-            self.neglogp = self.proba_distribution.neglogp(self.taken_action_ph)
+            self.neglogp = self.proba_distribution.neglogp(self.sampled_action)
             self.policy_proba = [self.proba_distribution.mean, self.proba_distribution.std]
 
             self.zero_state = np.array(self.zero_state)
@@ -342,20 +404,32 @@ class LSTMPolicy(Policy):
     def initial_state(self):
         return self.zero_state
 
-    # todo dones_ph
     def step(self, obs, state=None, mask=None, deterministic=False):
         stochastic = not deterministic
-        return tf.get_default_session().run([self.sampled_action, self.value_flat, self.state_out, self.neglogp],
-                             {self.obs_ph: obs, self.state_in_ph: state, self.dones_ph: mask,
-                              self.stochastic_ph: stochastic})
+        if self.sess==None:
+            return tf.get_default_session().run([self.sampled_action, self.value_flat, self.state_out, self.neglogp],
+                                 {self.obs_ph: obs, self.state_in_ph: state, self.dones_ph: mask,
+                                  self.stochastic_ph: stochastic})
+        else:
+            return self.sess.run([self.sampled_action, self.value_flat, self.state_out, self.neglogp],
+                            {self.obs_ph: obs, self.state_in_ph: state, self.dones_ph: mask,
+                             self.stochastic_ph: stochastic})
 
     def proba_step(self, obs, state=None, mask=None):
-        return tf.get_default_session().run(self.policy_proba, {self.obs_ph: obs, self.state_in_ph: state,
-                                                                self.dones_ph: mask})
+        if self.sess==None:
+            return tf.get_default_session().run(self.policy_proba, {self.obs_ph: obs, self.state_in_ph: state,
+                                                                    self.dones_ph: mask})
+        else:
+            return self.sess.run(self.policy_proba, {self.obs_ph: obs, self.state_in_ph: state,
+                                                self.dones_ph: mask})
 
     def value(self, obs, state=None, mask=None):
-        return tf.get_default_session().run(self.value_flat, {self.obs_ph: obs, self.state_in_ph: state,
-                                                              self.dones_ph: mask})
+        if self.sess==None:
+            return tf.get_default_session().run(self.value_flat, {self.obs_ph: obs, self.state_in_ph: state,
+                                                                  self.dones_ph: mask})
+        else:
+            return self.sess.run(self.value_flat, {self.obs_ph: obs, self.state_in_ph: state,
+                                              self.dones_ph: mask})
 
 
 class Value(Policy):

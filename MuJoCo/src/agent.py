@@ -211,7 +211,7 @@ class AdvAgent(object):
 
     def act(self, observation, reward=None, done=None):
         # todo change to agent.predict prediction normralization.
-        action, _, self.state, _ = self.agent.step(observation, self.state, done, determinitic=True)[0]
+        action, _, self.state, _ = self.agent.step(obs=observation, state=self.state, mask=done, deterministic=True)
         return action
     def reset(self):
         self.state = None
