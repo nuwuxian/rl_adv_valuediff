@@ -32,7 +32,7 @@ from utils.utils import print_arguments
 FLAGS = flags.FLAGS
 
 # game environment related hyperparameters.
-flags.DEFINE_enum("job_name", 'actor', ['actor', 'learner'], "Job type.")
+flags.DEFINE_enum("job_name", 'learner', ['actor', 'learner'], "Job type.")
 flags.DEFINE_string("learner_ip", "localhost", "Learner IP address.")
 flags.DEFINE_string("port_A", "5700", "Port for transporting model.")
 flags.DEFINE_string("port_B", "5701", "Port for transporting data.")

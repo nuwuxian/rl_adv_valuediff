@@ -73,7 +73,7 @@ class Monitor(VecEnvWrapper):
 class Multi2SingleEnv(Wrapper):
 
     def __init__(self, env, agent, agent_idx, shaping_params, scheduler, norm=True,
-                 clip_obs=10., clip_reward=10., gamma=0.99, epsilon=1e-8):
+                 norm_agent=False, clip_obs=10., clip_reward=10., gamma=0.99, epsilon=1e-8):
 
         """ from multi-agent environment to single-agent environment.
         :param: env: two-agent environment.
@@ -81,7 +81,8 @@ class Multi2SingleEnv(Wrapper):
         :param: agent_idx: victim agent index.
         :param: shaping_params: shaping parameters.
         :param: scheduler: anneal scheduler.
-        :param: norm: normalization or not.
+        :param: norm_agent: normalization or not.
+        :param: norm: normalize agent or not.
         :param: clip_obs: observation clip value.
         :param: clip_rewards: reward clip value.
         :param: gamma: discount factor.
@@ -98,6 +99,8 @@ class Multi2SingleEnv(Wrapper):
         # normalize the victim's obs and rets
         self.obs_rms = RunningMeanStd(shape=self.observation_space.shape)
         self.obs_rms_next = RunningMeanStd(shape=self.observation_space.shape)
+        # normalize the agent's obs
+        self.obs_agent = RunningMeanStd(shape=self.observation_space)
         self.ret_rms = RunningMeanStd(shape=())
         self.ret_abs_rms = RunningMeanStd(shape=())
 
@@ -106,6 +109,7 @@ class Multi2SingleEnv(Wrapper):
         self.cnt = 0
         self.agent_idx = agent_idx
         self.norm = norm
+        self.norm_agent = norm_agent
 
         self.shaping_params = shaping_params
         self.scheduler = scheduler
@@ -134,7 +138,13 @@ class Multi2SingleEnv(Wrapper):
         """
 
         self.cnt += 1
-        self_action = self.agent.act(observation=self.ob, reward=self.reward, done=self.done)
+        agent_ob = self.ob.copy()
+        if self.norm_agent:
+            self.obs_agent.update(agent_ob)
+            agent_ob = np.clip((agent_ob - self.obs_agent.mean) / np.sqrt(self.obs_agent.var + self.epsilon),
+                                         -self.clip_obs, self.clip_obs)
+
+        self_action = self.agent.act(observation=agent_ob, reward=self.reward, done=self.done)
         # note: current observation
         self.oppo_ob = self.ob.copy()
         self.action = self_action

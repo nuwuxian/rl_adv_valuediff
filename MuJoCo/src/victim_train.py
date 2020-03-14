@@ -19,7 +19,7 @@ from value import MlpValue, MlpLstmValue
 ##################
 parser = argparse.ArgumentParser()
 # game env
-parser.add_argument("--env", type=int, default=5)
+parser.add_argument("--env", type=int, default=2)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
@@ -28,8 +28,8 @@ parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 parser.add_argument("--vic_agt_id", type=int, default=3)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='const')
-parser.add_argument("--adv_ismlp", type=str, default='const')
+parser.add_argument("--adv_path", type=str, default='/home/xkw5132/rl_results/ccs_data/20200218_104648-1/YouShallNotPassHumans-v0.pkl')
+parser.add_argument("--adv_ismlp", type=bool, default=True)
 
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
@@ -155,7 +155,7 @@ if __name__=="__main__":
         env_name = GAME_ENV
 
         # multi to single
-        venv = SubprocVecEnv([lambda: make_adv_multi2single_env(env_name, N_GAME, ADV_AGENT_PATH,
+        venv = SubprocVecEnv([lambda: make_adv_multi2single_env(env_name, 1, ADV_AGENT_PATH,
                                                                 REW_SHAPE_PARAMS, scheduler, ADV_ISMLP,
                                                                 reverse=REVERSE) for i in range(N_GAME)])
         # test
