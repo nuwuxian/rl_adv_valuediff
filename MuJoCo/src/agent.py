@@ -8,9 +8,9 @@ from gym import Wrapper
 import gym_compete
 from common import trigger_map, action_map, get_zoo_path
 import tensorflow as tf
-from zoo_utils import MlpPolicyValue, LSTMPolicy, load_from_file, setFromFlat
+from zoo_utils import MlpPolicyValue, LSTMPolicy, load_from_file, load_from_model, setFromFlat
 from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
-
+from ppo2_wrap import MyPPO2
 
 # Random agent
 class RandomAgent(object):
@@ -182,6 +182,8 @@ def make_zoo_agent(env_name, ob_space, action_space, tag=2, version=1, scope="")
 
 
 def load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp=True):
+    # normalize the reward
+
     sess = tf.get_default_session()
     if sess is None:
         tf_config = tf.ConfigProto(inter_op_parallelism_threads=1, intra_op_parallelism_threads=1)
@@ -189,7 +191,6 @@ def load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp=Tru
         sess.__enter__()
 
     adv_agent = None
-    # todo: check normalization.
     if adv_ismlp:
         adv_agent = MlpPolicy(sess, ob_space, action_space, n_envs, 1, n_envs, reuse=False)
     else:
@@ -197,21 +198,23 @@ def load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp=Tru
 
     adv_agent_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='model')
     sess.run(tf.variables_initializer(adv_agent_variables))
-    param = load_from_file(param_pkl_path=adv_model_path)
-    # todo: check parameters.
-    # todo load(path)
+
+    # load from the ppo_model
+    param = load_from_model(param_pkl_path=adv_model_path)
     setFromFlat(adv_agent_variables, param)
-
     return adv_agent
-
 
 class AdvAgent(object):
     def __init__(self, ob_space, action_space, n_envs, adv_model_path, adv_ismlp):
         self.agent = load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp)
+        self.state = None
 
     def act(self, observation, reward=None, done=None):
         # todo change to agent.predict prediction normralization.
-        return self.agent.step(obs=observation, deterministic=True)[0]
+        action, _, self.state, _ = self.agent.step(observation, self.state, done, determinitic=True)[0]
+        return action
+    def reset(self):
+        self.state = None
 
 
 def make_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp):
