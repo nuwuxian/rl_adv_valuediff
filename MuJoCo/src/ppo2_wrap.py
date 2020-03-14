@@ -56,8 +56,10 @@ class MyPPO2(ActorCriticRLModel):
         :param: _init_setup_model: flag of whether defining the ppo model.
         :param: policy_kwargs: ???
         :param: full_tensorboard_log: ???
+        :param: is_mlp - opponent agent value function uses mlp or lstm.
         :param: model_saved_loc: model save location.
         :param: env_name: name of the environment.
+        :param: oppo_value: opponent value function.
         :param: retrain_victim:retrain victim agents or not.
         """
 
@@ -268,7 +270,11 @@ class MyPPO2(ActorCriticRLModel):
                     self.entropy = tf.reduce_mean(train_model.proba_distribution.entropy())
 
                     # adversarial agent value function loss
-                    vpred = train_model.value_flat
+                    if self.retrain_vicitim:
+                        vpred = train_model.vpredz
+                    else:
+                        vpred = train_model.value_flat
+
                     vpredclipped = self.old_vpred_ph + tf.clip_by_value(
                         train_model.value_flat - self.old_vpred_ph, - self.clip_range_ph, self.clip_range_ph)
                     vf_losses1 = tf.square(vpred - self.rewards_ph)
@@ -576,7 +582,7 @@ class MyPPO2(ActorCriticRLModel):
                 ep_info_buf.extend(ep_infos)
                 mb_loss_vals = []
 
-                if self.is_mlp and states is None:
+                if self.is_mlp and states is None: # is_mlp used to decide the type of opponent value function model and state is used to decide adversarial networks type.
                     update_fac = self.n_batch // self.nminibatches // self.noptepochs + 1
                     inds = np.arange(self.n_batch)
                     for epoch_num in range(self.noptepochs):
@@ -595,7 +601,7 @@ class MyPPO2(ActorCriticRLModel):
 
                     self.num_timesteps += (self.n_batch * self.noptepochs) // batch_size * update_fac
                 else:
-                    # ifnot mlp
+                    # if not mlp
                     update_fac = self.n_batch // self.nminibatches // self.noptepochs // self.n_steps + 1
                     assert self.n_envs % self.nminibatches == 0
                     env_indices = np.arange(self.n_envs)
@@ -613,12 +619,22 @@ class MyPPO2(ActorCriticRLModel):
                             slices = (arr[mb_flat_inds] for arr in
                                       (obs, returns, masks, actions, values, neglogpacs))
                             slices_victim = (arr[mb_flat_inds] for arr in (opp_obs, opp_returns, opp_values, abs_returns, abs_values))
-                            opp_mb_states = opp_states[mb_env_inds]
-                            abs_mb_states = abs_states[mb_env_inds]
+
+                            if states is None:
+                                mb_states = states
+                            else:
+                                mb_states = states[mb_env_inds]
+
+                            if not self.is_mlp:
+                                opp_mb_states = opp_states[mb_env_inds]
+                                abs_mb_states = abs_states[mb_env_inds]
+                            else:
+                                opp_mb_states = opp_states
+                                abs_mb_states = abs_states
 
                             mb_loss_vals.append(self._train_step(lr_now, cliprangenow, coef_opp_now, coef_adv_now, coef_abs_now,
                                                                  *slices, *slices_victim,
-                                                                 update=timestep, writer=writer,
+                                                                 update=timestep, writer=writer,states=states,
                                                                  opp_states=opp_mb_states, abs_states=abs_mb_states))
 
                     self.num_timesteps += (self.n_envs * self.noptepochs) // envs_per_batch * update_fac
@@ -859,6 +875,7 @@ class Runner(AbstractEnvRunner):
         mb_dones = np.asarray(mb_dones, dtype=np.bool)
 
         mb_opp_obs = np.asarray(mb_opp_obs, dtype=self.obs.dtype)
+
         if not self.is_mlp:
             mb_opp_states = np.asarray(mb_opp_states, dtype=np.float32)
             mb_abs_states = np.asarray(mb_abs_states, dtype=np.float32)

@@ -19,7 +19,7 @@ from value import MlpValue, MlpLstmValue
 ##################
 parser = argparse.ArgumentParser()
 # game env
-parser.add_argument("--env", type=int, default=2)
+parser.add_argument("--env", type=int, default=4)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
@@ -30,7 +30,7 @@ parser.add_argument("--vic_agt_id", type=int, default=3)
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
 # adv agent network
-parser.add_argument("--adv_net", type=str, default='MLP')
+parser.add_argument("--adv_net", type=str, default='LSTM')
 
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='linear')
@@ -145,7 +145,7 @@ if __name__=="__main__":
         scheduler = Scheduler(annealer_dict={'lr': ConstantAnnealer(LR)})
         env_name = GAME_ENV
 
-        # multi to single
+        # multi to single, apply normalization to victim agent's observation, reward, and diff reward.
         venv = SubprocVecEnv([lambda: make_zoo_multi2single_env(env_name, VIC_AGT_ID, REW_SHAPE_PARAMS, scheduler,
                                                                 reverse=REVERSE) for i in range(N_GAME)])
         # test
@@ -154,11 +154,11 @@ if __name__=="__main__":
         else:
             venv = Monitor(venv, 0)
 
-        # reward sharping.
+        # adversarial agent reward sharping.
         rew_shape_venv = apply_reward_wrapper(single_env=venv, scheduler=scheduler,
                                               agent_idx=0, shaping_params=REW_SHAPE_PARAMS)
 
-        # normalize reward
+        # normalize adversarial agent's reward and observation.
         venv = VecNormalize(rew_shape_venv)
         # makedir output
         out_dir, logger = setup_logger(SAVE_DIR, EXP_NAME)

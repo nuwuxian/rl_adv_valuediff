@@ -127,9 +127,10 @@ class MlpPolicyValue(Policy):
             self.vpredz = dense(last_out, 1, "vffinal")[:, 0]
 
             self.vpred = self.vpredz
-            if self.normalized and self.normalized != 'ob':
-                self.vpred = self.vpredz * self.ret_rms.std + self.ret_rms.mean  # raw = not standardized
+            # reverse normalization. because the reward is normalized, reversing it to see the real value.
 
+            if self.normalized and self.normalized != 'ob':
+                self.vpred = self.vpredz * self.ret_rms.std + self.ret_rms.mean
             last_out = obz
             for i, hid_size in enumerate(hiddens):
                 last_out = tf.nn.tanh(dense(last_out, hid_size, "polfc%i" % (i + 1)))
