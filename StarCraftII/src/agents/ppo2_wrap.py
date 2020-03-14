@@ -670,6 +670,7 @@ class Adv_Learner(object):
             os.makedirs(self._save_dir, exist_ok=True)
             fid = open(self._save_dir + '/Log.txt', 'a+')
             fid.write("%d %f\n" %(updates, winning_rate))
+            fid.close()
 
         tprint("Update: %d	Train-fps: %.1f	Rollout-fps: %.1f	"
                "Explained-var: %.5f	Avg-reward %.2f	Policy-loss: %.5f	"
