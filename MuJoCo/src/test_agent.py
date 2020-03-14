@@ -46,7 +46,7 @@ def run(config):
             policy.append(MlpPolicyValue(scope=scope, reuse=False,
                                          ob_space=env.observation_space.spaces[i],
                                          ac_space=env.action_space.spaces[i],
-                                         hiddens=[64, 64], normalize=True))
+                                         hiddens=[64, 64], normalize=False))
 
     # initialize uninitialized variables
     sess.run(tf.variables_initializer(tf.global_variables()))
@@ -69,9 +69,6 @@ def run(config):
     observation = env.reset()
     print("-"*5 + " Episode %d " % (num_episodes+1) + "-"*5)
     while num_episodes < max_episodes:
-
-    #   env.render()
-
         # normalize the observation-0 and observation-1
 
         obs0_rms.update(observation[0].copy())
@@ -82,8 +79,8 @@ def run(config):
         obs_1 = np.clip((observation[1] - obs1_rms.mean) / np.sqrt(obs0_rms.var + epsilon),
                                  -clip_obs, clip_obs)
 
-        action_0 = policy[0].act(stochastic=True, observation=obs_0)[0]
-        action_1 = policy[1].act(stochastic=True, observation=obs_1)[0]
+        action_0 = policy[0].act(stochastic=False, observation=obs_0)[0]
+        action_1 = policy[1].act(stochastic=False, observation=obs_1)[0]
         action = (action_0, action_1)
 
         observation, reward, done, infos = env.step(action)
