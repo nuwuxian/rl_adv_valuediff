@@ -13,7 +13,6 @@ import tensorflow as tf
 from stable_baselines import logger
 
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
-from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
 from stable_baselines.common.runners import AbstractEnvRunner
 
 from agent import get_zoo_path
@@ -21,7 +20,6 @@ from zoo_utils import load_from_file, setFromFlat, MlpPolicyValue, LSTMPolicy
 from stable_baselines.a2c.utils import total_episode_reward_logger
 from game_utils import infer_next_ph
 from value import MlpLstmValue, MlpValue
-from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 import pdb
 
 
@@ -178,9 +176,8 @@ class MyPPO2(ActorCriticRLModel):
     def setup_model(self):
 
         with SetVerbosity(self.verbose):
-
-            assert issubclass(self.policy, ActorCriticPolicy), "Error: the input policy for the PPO2 model must be " \
-                                                               "an instance of common.policies.ActorCriticPolicy."
+            # assert issubclass(self.policy, ActorCriticPolicy), "Error: the input policy for the PPO2 model must be " \
+            #                                                    "an instance of common.policies.ActorCriticPolicy."
             self.n_batch = self.n_envs * self.n_steps
             n_cpu = multiprocessing.cpu_count()
             if sys.platform == 'darwin':
@@ -192,7 +189,7 @@ class MyPPO2(ActorCriticRLModel):
 
                 n_batch_step = None
                 n_batch_train = None
-                if issubclass(self.policy, RecurrentActorCriticPolicy) or issubclass(self.opp_value, MlpLstmValue):
+                if issubclass(self.policy, LSTMPolicy) or issubclass(self.opp_value, MlpLstmValue):
                     assert self.n_envs % self.nminibatches == 0, "For recurrent policies, " \
                                                                  "the number of environments run in parallel should be a multiple of nminibatches."
                     n_batch_step = self.n_envs
@@ -201,32 +198,61 @@ class MyPPO2(ActorCriticRLModel):
                 if self.retrain_vicitim:
                     if self.env_name in ['multicomp/YouShallNotPassHumans-v0', "multicomp/RunToGoalAnts-v0",
                                          "multicomp/RunToGoalHumans-v0"]:
-                        act_model = MlpPolicyValue(scope="victim_policy", reuse=False,
-                                                   ob_space=self.observation_space,
-                                                   ac_space=self.action_space,
-                                                   hiddens=[64, 64], normalize=True)
-                        train_model = MlpPolicyValue(scope="vicitim_policy_train", reuse=True,
-                                                   ob_space=self.observation_space,
-                                                   ac_space=self.action_space,
-                                                   hiddens=[64, 64], normalize=True)
+                        act_model = self.policy(scope="vicitim_policy", reuse=False,
+                                                ob_space=self.observation_space,
+                                                ac_space=self.action_space,
+                                                hiddens=[64, 64], normalize=False)
+                        with tf.variable_scope("train_model", reuse=True,
+                                               custom_getter=tf_util.outer_scope_getter("train_model")):
+                            train_model = self.policy(scope="vicitim_policy", reuse=True,
+                                                      ob_space=self.observation_space,
+                                                      ac_space=self.action_space,
+                                                      hiddens=[64, 64], normalize=False)
                     else:
-                        act_model = LSTMPolicy(scope="vicitim_policy", reuse=False,
-                                               ob_space=self.observation_space,
-                                               ac_space=self.action_space,
-                                               hiddens=[128, 128], normalize=True)
-                        train_model = MlpPolicyValue(scope="vicitim_policy_train", reuse=True,
-                                                   ob_space=self.observation_space,
-                                                   ac_space=self.action_space,
-                                                   hiddens=[64, 64], normalize=True)
+                        act_model = self.policy(scope="vicitim_policy", reuse=False,
+                                                ob_space=self.observation_space,
+                                                ac_space=self.action_space,
+                                                hiddens=[128, 128], normalize=False)
+                        with tf.variable_scope("train_model", reuse=True,
+                                               custom_getter=tf_util.outer_scope_getter("train_model")):
+                            train_model = self.policy(scope="vicitim_policy", reuse=True,
+                                                      ob_space=self.observation_space,
+                                                      ac_space=self.action_space,
+                                                      hiddens=[128, 128], normalize=False)
                 else:
+                    # action model mask: (n_envs, 1), state * (1-mask), mask=1 means reset state.
                     act_model = self.policy(self.sess, self.observation_space, self.action_space, self.n_envs, 1,
                                             n_batch_step, reuse=False, **self.policy_kwargs)
 
                     with tf.variable_scope("train_model", reuse=True,
                                            custom_getter=tf_util.outer_scope_getter("train_model")):
+                        # automatically ignore the high level scope name when searching variable
+                        # custom_getter = tf_util.outer_scope_getter("train_model")
                         train_model = self.policy(self.sess, self.observation_space, self.action_space,
                                                   self.n_envs // self.nminibatches, self.n_steps, n_batch_train,
                                                   reuse=True, **self.policy_kwargs)
+                    # if issubclass(self.policy, MlpPolicyValue):
+                    #     act_model = self.policy(scope="vicitim_policy", reuse=False,
+                    #                         ob_space=self.observation_space,
+                    #                         ac_space=self.action_space,
+                    #                         hiddens=[64, 64], normalize=False)
+                    #     with tf.variable_scope("train_model", reuse=True,
+                    #                            custom_getter=tf_util.outer_scope_getter("train_model")):
+                    #         train_model = self.policy(scope="vicitim_policy", reuse=True,
+                    #                                   ob_space=self.observation_space,
+                    #                                   ac_space=self.action_space,
+                    #                                   hiddens=[64, 64], normalize=False)
+                    # else:
+                    #     act_model = self.policy(scope="vicitim_policy", reuse=False,
+                    #                             ob_space=self.observation_space,
+                    #                             ac_space=self.action_space,
+                    #                             hiddens=[128, 128], normalize=False)
+                    #     with tf.variable_scope("train_model", reuse=True,
+                    #                            custom_getter=tf_util.outer_scope_getter("train_model")):
+                    #         train_model = self.policy(scope="vicitim_policy", reuse=True,
+                    #                                   ob_space=self.observation_space,
+                    #                                   ac_space=self.action_space,
+                    #                                   hiddens=[128, 128], normalize=False)
 
                 # Define victim value function model
                 with tf.variable_scope("value_model", reuse=tf.AUTO_REUSE):
@@ -244,7 +270,11 @@ class MyPPO2(ActorCriticRLModel):
                                                     n_batch_train)
 
                 with tf.variable_scope("loss", reuse=False):
-                    self.action_ph = train_model.pdtype.sample_placeholder([None], name="action_ph")
+                    if self.retrain_vicitim:
+                        self.action_ph = tf.placeholder(shape=[None, self.action_space.shape[0]],
+                                                        dtype=tf.float32, name="action_ph")
+                    else:
+                        self.action_ph = train_model.pdtype.sample_placeholder([None], name="action_ph")
 
                     self.advs_ph = tf.placeholder(tf.float32, [None], name="advs_ph")
                     self.rewards_ph = tf.placeholder(tf.float32, [None], name="rewards_ph")
@@ -270,11 +300,7 @@ class MyPPO2(ActorCriticRLModel):
                     self.entropy = tf.reduce_mean(train_model.proba_distribution.entropy())
 
                     # adversarial agent value function loss
-                    if self.retrain_vicitim:
-                        vpred = train_model.vpredz
-                    else:
-                        vpred = train_model.value_flat
-
+                    vpred = train_model.value_flat
                     vpredclipped = self.old_vpred_ph + tf.clip_by_value(
                         train_model.value_flat - self.old_vpred_ph, - self.clip_range_ph, self.clip_range_ph)
                     vf_losses1 = tf.square(vpred - self.rewards_ph)
