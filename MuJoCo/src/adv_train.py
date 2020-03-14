@@ -28,9 +28,9 @@ parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 parser.add_argument("--vic_agt_id", type=int, default=3)
 
 # victim agent network
-parser.add_argument("--vic_net", type=str, default='MLP')
+parser.add_argument("--vic_net", type=str, default='LSTM')
 # adv agent network
-parser.add_argument("--adv_net", type=str, default='LSTM')
+parser.add_argument("--adv_net", type=str, default='MLP')
 
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='linear')

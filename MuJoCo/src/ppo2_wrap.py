@@ -634,7 +634,7 @@ class MyPPO2(ActorCriticRLModel):
 
                             mb_loss_vals.append(self._train_step(lr_now, cliprangenow, coef_opp_now, coef_adv_now, coef_abs_now,
                                                                  *slices, *slices_victim,
-                                                                 update=timestep, writer=writer,states=states,
+                                                                 update=timestep, writer=writer,states=mb_states,
                                                                  opp_states=opp_mb_states, abs_states=abs_mb_states))
 
                     self.num_timesteps += (self.n_envs * self.noptepochs) // envs_per_batch * update_fac
