@@ -14,6 +14,8 @@ from absl import app
 from absl import flags
 from absl import logging
 import tensorflow as tf
+from os import path as osp
+import datetime
 
 from agents.ppo_policies import LstmPolicy, MlpPolicy
 from agents.ppo_values import LstmValue, MlpValue
@@ -46,7 +48,7 @@ flags.DEFINE_boolean("use_action_mask", True, "Use region-wise combat.")
 flags.DEFINE_string("reward_shaping_type", "none", "type of reward shaping.")
 
 # opponent model related hyperparameters.
-flags.DEFINE_string("opp_model_path", '/home/xkw5132/Desktop/rl_newloss/StarCraftII/target-agent/checkpoint-50000', "Opponent Model Path")
+flags.DEFINE_string("opp_model_path", '/home/xkw5132/wenbo/rl_newloss/StarCraftII/target-agent/checkpoint-100000', "Opponent Model Path")
 flags.DEFINE_boolean("use_victim_ob", False, "whether use victim obs")
 
 # loss function related hyperparameters
@@ -80,11 +82,15 @@ flags.DEFINE_string("init_model_path", None, "Initial model path.")
 flags.DEFINE_string("save_dir", "../../checkpoints/", "Dir to save models to")
 flags.DEFINE_integer("save_interval", 50000, "Model saving frequency.")
 flags.DEFINE_integer("print_interval", 1000, "Print train cost frequency.")
-
 flags.FLAGS(sys.argv)
 
 random.seed(1234)
 GAME_SEED = random.randint(0, 2 ** 32 - 1)
+
+
+def make_timestamp():
+    ISO_TIMESTAMP = "%Y%m%d_%H%M%S"
+    return datetime.datetime.now().strftime(ISO_TIMESTAMP)
 
 
 def tf_config(ncpu=None):
@@ -201,6 +207,14 @@ def start_learner():
 
     value = {'lstm': LstmValue,
            'mlp': MlpValue}[FLAGS.value]
+
+    # Change the dir_name
+    FLAGS.save_dir = FLAGS.save_dir  + FLAGS.vic_coef_sch + "_" + str(FLAGS.vic_coef_init) + \
+            "_" + FLAGS.adv_coef_sch + "_" + str(FLAGS.adv_coef_init) + "_" + FLAGS.diff_coef_sch + \
+            "_" + str(FLAGS.diff_coef_init) + "_" + str(FLAGS.reward_shaping_type)
+    timestamp = make_timestamp()
+
+    FLAGS.save_dir = osp.join(FLAGS.save_dir, '{}-{}'.format(timestamp, str(GAME_SEED)))
 
     learner = Adv_Learner(env=env,
                           policy=policy,

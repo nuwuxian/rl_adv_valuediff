@@ -666,6 +666,10 @@ class Adv_Learner(object):
         total_game = len(self._episode_infos)
         winning_rate = sum([info['win'] for info in self._episode_infos]) * 1.0 / total_game
         tprint('Total_Game is %d, Winning_rate is %f' % (total_game, winning_rate))
+        if self._save_dir is not None:
+            os.makedirs(self._save_dir, exist_ok=True)
+            fid = open(self._save_dir + '/Log.txt', 'a+')
+            fid.write("%d %f\n" %(updates, winning_rate))
 
         tprint("Update: %d	Train-fps: %.1f	Rollout-fps: %.1f	"
                "Explained-var: %.5f	Avg-reward %.2f	Policy-loss: %.5f	"
