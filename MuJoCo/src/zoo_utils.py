@@ -284,9 +284,9 @@ class LSTMPolicy(Policy):
             self.zero_state.append(np.zeros(size.h, dtype=np.float32))
             self.state_in_ph.append(tf.placeholder(tf.float32, [None, size.c], name="lstmp_c"))
             self.state_in_ph.append(tf.placeholder(tf.float32, [None, size.h], name="lstmp_h"))
-            initial_state = tf.contrib.rnn.LSTMStateTuple(self.state_in_ph[-2] * (1-self.dones_ph),
-                                                          self.state_in_ph[-1]* (1-self.dones_ph))
-            last_out, state_out = tf.nn.dynamic_rnn(cell, last_out, initial_state=initial_state, scope="lstmp")
+            self.initial_state_1 = tf.contrib.rnn.LSTMStateTuple(self.state_in_ph[-2] * (1-self.dones_ph),
+                                                                 self.state_in_ph[-1]* (1-self.dones_ph))
+            last_out, state_out = tf.nn.dynamic_rnn(cell, last_out, initial_state=self.initial_state_1, scope="lstmp")
             self.state_out.append(state_out)
 
             mean = tf.contrib.layers.fully_connected(last_out, ac_space.shape[0], activation_fn=None)
@@ -320,7 +320,7 @@ class LSTMPolicy(Policy):
             self.observation_ph: observation[None, None],
             self.state_in_ph: list(self.state[:, None, :]),
             self.stochastic_ph: stochastic,
-            self.dones_ph:np.zore(self.state[0, None, 0].shape)})
+            self.dones_ph:np.zeros(self.state[0, None, 0].shape)[:,None]})
         self.state = []
         for x in s:
             self.state.append(x.c[0])

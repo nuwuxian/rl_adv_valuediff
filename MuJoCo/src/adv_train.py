@@ -28,14 +28,14 @@ parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 parser.add_argument("--vic_agt_id", type=int, default=3)
 
 # victim agent network
-parser.add_argument("--vic_net", type=str, default='LSTM')
+parser.add_argument("--vic_net", type=str, default='MLP')
 # adv agent network
-parser.add_argument("--adv_net", type=str, default='MLP')
+parser.add_argument("--adv_net", type=str, default='LSTM')
 
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='linear')
 # number of steps / lstm length should be small
-parser.add_argument("--nsteps", type=int, default=2048)
+parser.add_argument("--nsteps", type=int, default=128)
 
 # victim loss coefficient.
 parser.add_argument("--vic_coef_init", type=int, default=1) # positive
