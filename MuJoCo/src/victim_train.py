@@ -57,7 +57,7 @@ parser.add_argument("--diff_coef_init", type=int, default=-3) # negative
 parser.add_argument("--diff_coef_sch", type=str, default='const')
 
 # whether use stable baseline policy
-parser.add_argument("--use_baseline_policy", type=bool, default='True')
+parser.add_argument("--use_baseline_policy", type=bool, default=False)
 
 # load pretrained agent
 parser.add_argument("--load", type=int, default=0)
