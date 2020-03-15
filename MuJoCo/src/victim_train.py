@@ -1,6 +1,7 @@
 import os
 import argparse
 import gym
+import os.path as osp
 from common import env_list
 from zoo_utils import MlpPolicyValue, LSTMPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
@@ -28,7 +29,7 @@ parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 parser.add_argument("--vic_agt_id", type=int, default=3)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/rl_newloss/MuJoCo/agent-zoo/SumoAnts-v0_1_MLP_MLP_1_const_-1_const_-1_const_False/20200303_124759-0/SumoAnts-v0.pkl')
+parser.add_argument("--adv_path", type=str, default='/home/xkw5132/agent-zoo/SumoAnts-v0_1_MLP_MLP_1_const_-1_const_-1_const_False/20200303_124759-0/SumoAnts-v0.pkl')
 # parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/rl_newloss/MuJoCo/agent-zoo/YouShallNotPassHumans-v0_3_MLP_MLP_1_const_0_const_0_const_False/20200218_104638-0/YouShallNotPassHumans-v0.pkl')
 parser.add_argument("--adv_ismlp", type=bool, default=True)
 
@@ -111,6 +112,7 @@ COEF_DIFF_SCHEDULE = args.diff_coef_sch
 CALLBACK_KEY = 'update'
 CALLBACK_MUL = 16384
 LOG_INTERVAL = 2048
+CHECKPOINT_INTERVAL = 131072
 
 # TODO: enable loading the victim model.
 PRETRAIN_TEMPLETE = "../agent-zoo/%s-pretrained-expert-1000-1000-1e-03.pkl"
@@ -128,14 +130,27 @@ if 'You' in GAME_ENV.split('/')[1]:
 else:
     REVERSE = True
 
+def _save(model, root_dir, save_callbacks):
+    os.makedirs(root_dir, exist_ok=True)
+    model_path = osp.join(root_dir, 'model.pkl')
+    model.save(model_path)
+    save_callbacks(root_dir)
 
-def victim_train(env, total_timesteps, log_interval, callback_key, callback_mul, logger, seed, use_victim_ob):
+
+def victim_train(env, total_timesteps, checkpoint_interval, log_interval, callback_key, callback_mul, logger, seed, use_victim_ob):
     log_callback = lambda logger, locals, globals: env.log_callback(logger)
+    save_callback = lambda root_dir: env.save_running_average(root_dir)
     last_log = 0
+    last_checkpoint = 0
 
     def callback(locals, globals):
-        nonlocal last_log
+        nonlocal last_checkpoint, last_log
         step = locals[callback_key] * callback_mul
+        if step - checkpoint_interval > last_checkpoint:
+            checkpoint_dir = osp.join(out_dir, 'checkpoints', f'{step:012}')
+            _save(model, checkpoint_dir, save_callback)
+            last_checkpoint = step
+
         if step - log_interval > last_log:
             log_callback(logger, locals, globals)
             last_log = step
@@ -167,6 +182,7 @@ if __name__=="__main__":
 
         # normalize reward
         venv = VecNormalize(rew_shape_venv)
+
         # makedir output
         out_dir, logger = setup_logger(SAVE_DIR, EXP_NAME)
 
@@ -196,6 +212,6 @@ if __name__=="__main__":
                        n_steps=NSTEPS, gamma=GAMMA, is_mlp=IS_MLP,
                        env_name=env_name, opp_value=vic_value, vic_agt_id=VIC_AGT_ID, retrain_victim=True)
 
-        victim_train(venv, TRAINING_ITER, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
+        victim_train(venv, TRAINING_ITER, CHECKPOINT_INTERVAL, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
                      use_victim_ob=USE_VIC)
         model.save(os.path.join(out_dir, env_name.split('/')[1]))

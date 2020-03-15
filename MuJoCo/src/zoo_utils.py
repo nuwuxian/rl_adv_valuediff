@@ -296,7 +296,7 @@ class MlpPolicyValue(Policy):
 
 class LSTMPolicy(Policy):
     def __init__(self, scope, *, ob_space, ac_space, hiddens, n_batch_train=1,
-                 n_envs=None, sess=None, reuse=False, normalize=False):
+                 n_envs=1, sess=None, reuse=False, normalize=False):
         self.sess = sess
         self.recurrent = True
         self.normalized = normalize
