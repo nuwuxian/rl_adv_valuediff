@@ -398,6 +398,7 @@ class LSTMPolicy(Policy):
             self.state.append(x.h[0])
         self.state = np.array(self.state)
 
+        # todo: check action.
         return a[0, ], {'vpred': v[0, 0], 'state': self.state}
 
     def get_variables(self):
