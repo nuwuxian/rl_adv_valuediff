@@ -177,9 +177,9 @@ class MyPPO2(ActorCriticRLModel):
                     if self.env_name in ['multicomp/YouShallNotPassHumans-v0', "multicomp/RunToGoalAnts-v0",
                                          "multicomp/RunToGoalHumans-v0"]:
                         act_model = MlpPolicyValue(scope="victim_policy", reuse=False,
-                                                ob_space=self.observation_space,
-                                                ac_space=self.action_space, sess=self.sess,
-                                                hiddens=[64, 64], normalize=False)
+                                                   ob_space=self.observation_space,
+                                                   ac_space=self.action_space, sess=self.sess,
+                                                   hiddens=[64, 64], normalize=False)
                         with tf.variable_scope("train_model", reuse=True,
                                                custom_getter=tf_util.outer_scope_getter("train_model")):
                             train_model = MlpPolicyValue(scope="victim_policy", reuse=True,
@@ -191,13 +191,14 @@ class MyPPO2(ActorCriticRLModel):
                         n_batch_train = self.n_batch // self.nminibatches
 
                         act_model = LSTMPolicy(scope="victim_policy", reuse=False,
-                                                ob_space=self.observation_space,
+                                                ob_space=self.observation_space, n_envs=self.n_envs,
                                                 ac_space=self.action_space, sess=self.sess,
                                                 hiddens=[128, 128], normalize=False)
                         with tf.variable_scope("train_model", reuse=True,
                                                custom_getter=tf_util.outer_scope_getter("train_model")):
                             train_model = LSTMPolicy(scope="victim_policy", reuse=True,
-                                                      ob_space=self.observation_space,
+                                                     ob_space=self.observation_space, n_envs=self.n_envs,
+                                                     n_batch_train = n_batch_train,
                                                       ac_space=self.action_space, sess=self.sess,
                                                       hiddens=[128, 128], normalize=False)
                 else:
@@ -261,6 +262,7 @@ class MyPPO2(ActorCriticRLModel):
                         self.action_ph = tf.placeholder(shape=[None, self.action_space.shape[0]],
                                                         dtype=tf.float32, name="action_ph")
                     else:
+                        # (None, action_shape)
                         self.action_ph = train_model.pdtype.sample_placeholder([None], name="action_ph")
 
                     self.advs_ph = tf.placeholder(tf.float32, [None], name="advs_ph")
@@ -277,19 +279,22 @@ class MyPPO2(ActorCriticRLModel):
 
                     self.opp_advs_ph = tf.placeholder(tf.float32, [None], name="opp_advs_ph")
                     self.opp_rewards_ph = tf.placeholder(tf.float32, [None], name="opp_rewards_ph")
-                    self.old_opp_vpred_ph = tf.placeholder(tf.float32, [None], name='old_opp_vpred_ph')
+                    self.old_opp_vpred_ph = tf.placeholder(tf.float32, [None], name='old_opp_vpred_ph')  #(n_step*n_envs//minibatch)
 
                     self.abs_advs_ph = tf.placeholder(tf.float32, [None], name="abs_advs_ph")
                     self.abs_rewards_ph = tf.placeholder(tf.float32, [None], name="abs_rewards_ph")
                     self.old_abs_vpred_ph = tf.placeholder(tf.float32, [None], name='old_abs_vpred_ph')
 
-                    neglogpac = train_model.proba_distribution.neglogp(self.action_ph)
-                    self.entropy = tf.reduce_mean(train_model.proba_distribution.entropy())
+                    neglogpac = train_model.proba_distribution.neglogp(self.action_ph) #(n_step*n_envs//minibatch)
+                    self.entropy = tf.reduce_mean(train_model.proba_distribution.entropy()) #()
 
                     # adversarial agent value function loss
-                    vpred = train_model.value_flat
+                    if self.retrain_vicitim:
+                        vpred = tf.reshape(train_model.value_flat, [-1])
+                    else:
+                        vpred = train_model.value_flat
                     vpredclipped = self.old_vpred_ph + tf.clip_by_value(
-                        train_model.value_flat - self.old_vpred_ph, - self.clip_range_ph, self.clip_range_ph)
+                        vpred - self.old_vpred_ph, - self.clip_range_ph, self.clip_range_ph)
                     vf_losses1 = tf.square(vpred - self.rewards_ph)
                     vf_losses2 = tf.square(vpredclipped - self.rewards_ph)
                     self.vf_loss = .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
@@ -467,7 +472,7 @@ class MyPPO2(ActorCriticRLModel):
         :return: policy gradient loss, value function loss, policy entropy,
                 approximation of kl divergence, updated clipping range, training update operation
         """
-        advs = returns - values
+        advs = returns - values #(n_envs*n_step//minibatch, )
         advs = (advs - advs.mean()) / (advs.std() + 1e-8)
 
         opp_advs = opp_returns - opp_values
@@ -475,21 +480,49 @@ class MyPPO2(ActorCriticRLModel):
 
         abs_advs = abs_returns - abs_values
         abs_advs = (abs_advs - abs_advs.mean()) / (abs_advs.std() + 1e-8)
+        if self.retrain_vicitim:
+            # obs: (n_envs//mini_batch, n_step, obs_shape)
+            if issubclass(self.train_model.__class__, LSTMPolicy):
+                obs = obs.reshape((self.n_envs//self.nminibatches, self.n_steps, obs.shape[-1]))
+            td_map = {self.train_model.obs_ph: obs, self.action_ph: actions, self.advs_ph: advs,
+                      self.rewards_ph: returns,
+                      self.learning_rate_ph: learning_rate, self.clip_range_ph: cliprange,
+                      self.old_neglog_pac_ph: neglogpacs, self.old_vpred_ph: values,
+                      self.opp_advs_ph: opp_advs,
+                      self.opp_rewards_ph: opp_returns, self.old_opp_vpred_ph: opp_values,
+                      self.abs_advs_ph: abs_advs,
+                      self.abs_rewards_ph: abs_returns, self.old_abs_vpred_ph: abs_values,
+                      self.coef_opp_ph: coef_opp, self.coef_adv_ph: coef_adv, self.coef_abs_ph: coef_abs,
+                      self.vtrain1_model.obs_ph: opp_obs, self.vtrain_model.obs_ph: opp_obs
+                      }
 
-        td_map = {self.train_model.obs_ph: obs, self.action_ph: actions, self.advs_ph: advs, self.rewards_ph: returns,
-                  self.learning_rate_ph: learning_rate, self.clip_range_ph: cliprange,
-                  self.old_neglog_pac_ph: neglogpacs, self.old_vpred_ph: values,
-                  self.opp_advs_ph: opp_advs,
-                  self.opp_rewards_ph: opp_returns, self.old_opp_vpred_ph: opp_values,
-                  self.abs_advs_ph: abs_advs,
-                  self.abs_rewards_ph: abs_returns, self.old_abs_vpred_ph: abs_values,
-                  self.coef_opp_ph: coef_opp, self.coef_adv_ph: coef_adv, self.coef_abs_ph: coef_abs,
-                  self.vtrain1_model.obs_ph: opp_obs, self.vtrain_model.obs_ph: opp_obs
-                  }
+            if states is not None:
+                masks = masks.reshape((self.n_envs // self.nminibatches, self.n_steps, 1))
+                masks_in = np.zeros((self.n_envs // self.nminibatches, 1))
+                for i in range(masks.shape[0]):
+                    tmp = masks[i,]
+                    if np.where(masks[0]==True)[0].shape[0]==0:
+                        masks_in[i,0]=False
+                    else:
+                        masks_in[i,0]=True
+                td_map[self.train_model.state_in_ph] = list(states)  # (n_nev//mini_batch, hidden)
+                td_map[self.train_model.dones_ph] = masks_in  # (n_envs*n_step//minibatch, )
 
-        if states is not None:
-            td_map[self.train_model.states_ph] = states
-            td_map[self.train_model.dones_ph] = masks
+        else:
+            td_map = {self.train_model.obs_ph: obs, self.action_ph: actions, self.advs_ph: advs, self.rewards_ph: returns,
+                      self.learning_rate_ph: learning_rate, self.clip_range_ph: cliprange,
+                      self.old_neglog_pac_ph: neglogpacs, self.old_vpred_ph: values,
+                      self.opp_advs_ph: opp_advs,
+                      self.opp_rewards_ph: opp_returns, self.old_opp_vpred_ph: opp_values,
+                      self.abs_advs_ph: abs_advs,
+                      self.abs_rewards_ph: abs_returns, self.old_abs_vpred_ph: abs_values,
+                      self.coef_opp_ph: coef_opp, self.coef_adv_ph: coef_adv, self.coef_abs_ph: coef_abs,
+                      self.vtrain1_model.obs_ph: opp_obs, self.vtrain_model.obs_ph: opp_obs
+                      }
+
+            if states is not None:
+                td_map[self.train_model.states_ph] = states # (n_nev//mini_batch, hidden)
+                td_map[self.train_model.dones_ph] = masks # (n_envs*n_step//minibatch, )
 
         if opp_states is not None:
             td_map[self.vtrain_model.states_ph] = opp_states
@@ -612,7 +645,7 @@ class MyPPO2(ActorCriticRLModel):
                 obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward, opp_true_reward, \
                 abs_true_reward, opp_obs, opp_states, opp_returns, opp_values, abs_states, abs_returns, abs_values \
                     = runner.run()
-
+                # obs (n_envs*n_steps, 137), returns (n_envs*n_steps, ), masks (n_envs*n_steps, ), actions (n_envs*n_steps, ac_space), values (n_envs*n_steps, ), neglogpacs (n_envs*n_steps, ), states (n_envs, 512), true_reward, opp_true_reward, abs_true_reward, opp_obs, opp_states, opp_returns, opp_values, abs_states, abs_returns, abs_values
                 ep_info_buf.extend(ep_infos)
                 mb_loss_vals = []
 
@@ -657,7 +690,10 @@ class MyPPO2(ActorCriticRLModel):
                             if states is None:
                                 mb_states = states
                             else:
-                                mb_states = states[mb_env_inds]
+                                if self.retrain_vicitim:
+                                    mb_states = states[:, mb_env_inds, :]
+                                else:
+                                    mb_states = states[mb_env_inds]
 
                             if not self.is_mlp:
                                 opp_mb_states = opp_states[mb_env_inds]
@@ -848,7 +884,7 @@ class Runner(AbstractEnvRunner):
 
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = [], [], [], [], [], []
 
-        mb_states = self.states
+        mb_states = self.states # (n_envs, 512) # (4, n_envs, 128)
         ep_infos = []
         mb_opp_obs = []
 
@@ -863,6 +899,8 @@ class Runner(AbstractEnvRunner):
 
         # mb_obs_oppo, mb_actions_oppo = [], []
         for _ in range(self.n_steps):
+            # self.obs (n_envs, obs_shape) self.dones (n_envs, 1)
+            # actions (n_envs, action_shape) value(n_envs,) neglogpacs (n_envs, 1)
             actions, values, self.states, neglogpacs = self.model.step(self.obs, self.states, self.dones)
             mb_obs.append(self.obs.copy())
             mb_actions.append(actions)
@@ -901,12 +939,12 @@ class Runner(AbstractEnvRunner):
                     ep_infos.append(maybe_ep_info)
             mb_rewards.append(rewards)
 
-        mb_obs = np.asarray(mb_obs, dtype=self.obs.dtype)
-        mb_rewards = np.asarray(mb_rewards, dtype=np.float32)
-        mb_actions = np.asarray(mb_actions)
-        mb_values = np.asarray(mb_values, dtype=np.float32)
-        mb_neglogpacs = np.asarray(mb_neglogpacs, dtype=np.float32)
-        mb_dones = np.asarray(mb_dones, dtype=np.bool)
+        mb_obs = np.asarray(mb_obs, dtype=self.obs.dtype) # (n_steps, n_envs, observation_space)
+        mb_rewards = np.asarray(mb_rewards, dtype=np.float32) # (n_steps, n_envs)
+        mb_actions = np.asarray(mb_actions) # (n_steps, n_envs, action_space)
+        mb_values = np.asarray(mb_values, dtype=np.float32) # (n_steps, n_envs)
+        mb_neglogpacs = np.asarray(mb_neglogpacs, dtype=np.float32) # (n_steps, n_envs)
+        mb_dones = np.asarray(mb_dones, dtype=np.bool) # (n_steps, n_envs)
 
         mb_opp_obs = np.asarray(mb_opp_obs, dtype=self.obs.dtype)
 

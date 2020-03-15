@@ -19,7 +19,7 @@ from value import MlpValue, MlpLstmValue
 ##################
 parser = argparse.ArgumentParser()
 # game env
-parser.add_argument("--env", type=int, default=2)
+parser.add_argument("--env", type=int, default=4)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
@@ -28,7 +28,8 @@ parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 parser.add_argument("--vic_agt_id", type=int, default=3)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/rl_newloss/MuJoCo/agent-zoo/YouShallNotPassHumans-v0_3_MLP_MLP_1_const_0_const_0_const_False/20200218_104638-0/YouShallNotPassHumans-v0.pkl')
+parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/rl_newloss/MuJoCo/agent-zoo/SumoAnts-v0_1_MLP_MLP_1_const_-1_const_-1_const_False/20200303_124759-0/SumoAnts-v0.pkl')
+# parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/rl_newloss/MuJoCo/agent-zoo/YouShallNotPassHumans-v0_3_MLP_MLP_1_const_0_const_0_const_False/20200218_104638-0/YouShallNotPassHumans-v0.pkl')
 parser.add_argument("--adv_ismlp", type=bool, default=True)
 
 # victim agent network
@@ -37,7 +38,7 @@ parser.add_argument("--vic_net", type=str, default='MLP')
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='linear')
 # number of steps / lstm length should be small
-parser.add_argument("--nsteps", type=int, default=128)
+parser.add_argument("--nsteps", type=int, default=32)
 
 # victim loss coefficient.
 parser.add_argument("--vic_coef_init", type=int, default=1) # positive
@@ -193,7 +194,7 @@ if __name__=="__main__":
                        nminibatches=NBATCHES, noptepochs=NEPOCHS,
                        learning_rate=LR,  verbose=1,
                        n_steps=NSTEPS, gamma=GAMMA, is_mlp=IS_MLP,
-                       env_name=env_name, opp_value=vic_value, retrain_victim=True)
+                       env_name=env_name, opp_value=vic_value, vic_agt_id=VIC_AGT_ID, retrain_victim=True)
 
         victim_train(venv, TRAINING_ITER, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
                      use_victim_ob=USE_VIC)

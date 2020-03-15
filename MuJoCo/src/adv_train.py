@@ -30,7 +30,7 @@ parser.add_argument("--vic_agt_id", type=int, default=3)
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
 # adv agent network
-parser.add_argument("--adv_net", type=str, default='MLP')
+parser.add_argument("--adv_net", type=str, default='LSTM')
 
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='linear')

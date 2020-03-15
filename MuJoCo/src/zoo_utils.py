@@ -56,7 +56,7 @@ def load_from_model(param_pkl_path):
 # <tf.Variable 'lstm_policy/obsfilter/sum:0' shape=(137,) dtype=float32_ref>
 # <tf.Variable 'lstm_policy/obsfilter/sumsq:0' shape=(137,) dtype=float32_ref>
 # <tf.Variable 'lstm_policy/obsfilter/count:0' shape=() dtype=float32_ref>
-
+# 137*2+4 = 278
 # <tf.Variable 'lstm_policy/fully_connected/weights:0' shape=(137, 128) dtype=float32_ref>
 # <tf.Variable 'lstm_policy/fully_connected/biases:0' shape=(128,) dtype=float32_ref>
 # <tf.Variable 'lstm_policy/lstmv/basic_lstm_cell/kernel:0' shape=(256, 512) dtype=float32_ref>
@@ -201,7 +201,8 @@ class DiagonalGaussian(object):
         return tf.reduce_sum(self.logstd + .5 * np.log(2.0 * np.pi * np.e), axis=-1)
 
 class MlpPolicyValue(Policy):
-    def __init__(self, scope, *, ob_space, ac_space, hiddens, convs=[], sess=None, reuse=False, normalize=False):
+    def __init__(self, scope, *, ob_space, ac_space, hiddens, convs=[], n_batch_train=1,
+                 sess=None, reuse=False, normalize=False):
         self.sess = sess
         self.recurrent = False
         self.normalized = normalize
@@ -238,7 +239,8 @@ class MlpPolicyValue(Policy):
             for i, hid_size in enumerate(hiddens):
                 last_out = tf.nn.tanh(dense(last_out, hid_size, "polfc%i" % (i + 1)))
             mean = dense(last_out, ac_space.shape[0], "polfinal")
-            logstd = tf.get_variable(name="logstd", shape=[1, ac_space.shape[0]], initializer=tf.zeros_initializer())
+            logstd = tf.get_variable(name="logstd", shape=[n_batch_train, ac_space.shape[0]],
+                                     initializer=tf.zeros_initializer())
 
             self.pd = DiagonalGaussian(mean, logstd)
             self.proba_distribution = self.pd
@@ -293,10 +295,12 @@ class MlpPolicyValue(Policy):
 
 
 class LSTMPolicy(Policy):
-    def __init__(self, scope, *, ob_space, ac_space, hiddens, sess=None, reuse=False, normalize=False):
+    def __init__(self, scope, *, ob_space, ac_space, hiddens, n_batch_train=1,
+                 n_envs=None, sess=None, reuse=False, normalize=False):
         self.sess = sess
         self.recurrent = True
         self.normalized = normalize
+        self.n_envs = n_envs
         with tf.variable_scope(scope, reuse=reuse):
             self.scope = tf.get_variable_scope().name
 
@@ -328,8 +332,9 @@ class LSTMPolicy(Policy):
             self.zero_state.append(np.zeros(size.h, dtype=np.float32))
             self.state_in_ph.append(tf.placeholder(tf.float32, [None, size.c], name="lstmv_c"))
             self.state_in_ph.append(tf.placeholder(tf.float32, [None, size.h], name="lstmv_h"))
-            initial_state = tf.contrib.rnn.LSTMStateTuple(self.state_in_ph[-2], self.state_in_ph[-1])
-            last_out, state_out = tf.nn.dynamic_rnn(cell, last_out, initial_state=initial_state, scope="lstmv")
+            self.initial_state_1 = tf.contrib.rnn.LSTMStateTuple(self.state_in_ph[-2] * (1-self.dones_ph),
+                                                                 self.state_in_ph[-1]* (1-self.dones_ph))
+            last_out, state_out = tf.nn.dynamic_rnn(cell, last_out, initial_state=self.initial_state_1, scope="lstmv")
             self.state_out.append(state_out)
 
             self.vpredz = tf.contrib.layers.fully_connected(last_out, 1, activation_fn=None)[:, :, 0]
@@ -350,11 +355,15 @@ class LSTMPolicy(Policy):
                                                                  self.state_in_ph[-1]* (1-self.dones_ph))
             last_out, state_out = tf.nn.dynamic_rnn(cell, last_out, initial_state=self.initial_state_1, scope="lstmp")
             self.state_out.append(state_out)
-
-            mean = tf.contrib.layers.fully_connected(last_out, ac_space.shape[0], activation_fn=None)
+            self.mean = tf.contrib.layers.fully_connected(last_out, ac_space.shape[0], activation_fn=None)
             logstd = tf.get_variable(name="logstd", shape=[1, ac_space.shape[0]], initializer=tf.zeros_initializer())
 
-            self.pd = DiagonalGaussian(mean, logstd)
+            # self.pd_mean = tf.reshape(self.mean
+            if reuse:
+                self.pd_mean = tf.reshape(self.mean, (n_batch_train, ac_space.shape[0]))
+            else:
+                self.pd_mean = tf.reshape(self.mean, (n_envs, ac_space.shape[0]))
+            self.pd = DiagonalGaussian(self.pd_mean, logstd)
             self.proba_distribution = self.pd
             self.sampled_action = switch(self.stochastic_ph, self.pd.sample(), self.pd.mode())
             self.neglogp = self.proba_distribution.neglogp(self.sampled_action)
@@ -389,7 +398,7 @@ class LSTMPolicy(Policy):
             self.state.append(x.h[0])
         self.state = np.array(self.state)
 
-        return a[0, 0], {'vpred': v[0, 0], 'state': self.state}
+        return a[0, ], {'vpred': v[0, 0], 'state': self.state}
 
     def get_variables(self):
         return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.scope)
@@ -402,34 +411,52 @@ class LSTMPolicy(Policy):
 
     @property
     def initial_state(self):
-        return self.zero_state
+        initial_state_shape = []
+        for i in range(4):
+            initial_state_shape.append(np.repeat(self.zero_state[i][None,], self.n_envs, axis=0))
+        self._initial_state = np.array(initial_state_shape)
+        return self._initial_state
 
     def step(self, obs, state=None, mask=None, deterministic=False):
         stochastic = not deterministic
+        if mask is not None:
+            mask = np.array(mask)[:, None]
         if self.sess==None:
-            return tf.get_default_session().run([self.sampled_action, self.value_flat, self.state_out, self.neglogp],
-                                 {self.obs_ph: obs, self.state_in_ph: state, self.dones_ph: mask,
-                                  self.stochastic_ph: stochastic})
+            action, value, state, neglogp = tf.get_default_session().run([self.sampled_action, self.value_flat[:, 0], self.state_out, self.neglogp],
+                                                                         {self.obs_ph: obs[:, None, :], self.state_in_ph: list(state), self.dones_ph: mask,
+                                                                          self.stochastic_ph: stochastic})
         else:
-            return self.sess.run([self.sampled_action, self.value_flat, self.state_out, self.neglogp],
-                            {self.obs_ph: obs, self.state_in_ph: state, self.dones_ph: mask,
-                             self.stochastic_ph: stochastic})
+            action, value, state, neglogp = self.sess.run([self.sampled_action, self.value_flat[:, 0], self.state_out, self.neglogp],
+                                                          {self.obs_ph: obs[:, None, :], self.state_in_ph: list(state), self.dones_ph: mask,
+                                                           self.stochastic_ph: stochastic})
+        state_np = []
+        for state_tmp in state:
+            for state_tmp_1 in state_tmp:
+                state_np.append(state_tmp_1)
+
+        return action, value, np.array(state_np), neglogp
 
     def proba_step(self, obs, state=None, mask=None):
+        if mask is not None:
+            mask = np.array(mask)[:, None]
         if self.sess==None:
             return tf.get_default_session().run(self.policy_proba, {self.obs_ph: obs, self.state_in_ph: state,
                                                                     self.dones_ph: mask})
         else:
-            return self.sess.run(self.policy_proba, {self.obs_ph: obs, self.state_in_ph: state,
+            return self.sess.run(self.policy_proba, {self.obs_ph: obs[:, None, :], self.state_in_ph: list(state),
                                                 self.dones_ph: mask})
 
     def value(self, obs, state=None, mask=None):
+        if mask is not None:
+            mask = np.array(mask)[:, None]
         if self.sess==None:
-            return tf.get_default_session().run(self.value_flat, {self.obs_ph: obs, self.state_in_ph: state,
-                                                                  self.dones_ph: mask})
+            return tf.get_default_session().run(self.value_flat[:,0], {self.obs_ph: obs[:, None, :],
+                                                                       self.state_in_ph: list(state),
+                                                                       self.dones_ph: mask})
         else:
-            return self.sess.run(self.value_flat, {self.obs_ph: obs, self.state_in_ph: state,
-                                              self.dones_ph: mask})
+            return self.sess.run(self.value_flat[:,0], {self.obs_ph: obs[:, None, :],
+                                                        self.state_in_ph: list(state),
+                                                        self.dones_ph: mask})
 
 
 class Value(Policy):
