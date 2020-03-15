@@ -139,6 +139,7 @@ def _save(model, root_dir, save_callbacks):
 
 def victim_train(env, total_timesteps, checkpoint_interval, log_interval, callback_key, callback_mul, logger, seed, use_victim_ob):
     log_callback = lambda logger, locals, globals: env.log_callback(logger)
+    # save obs-mean & variance
     save_callback = lambda root_dir: env.save_running_average(root_dir)
     last_log = 0
     last_checkpoint = 0
