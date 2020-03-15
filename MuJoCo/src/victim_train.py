@@ -12,6 +12,8 @@ from environment import make_zoo_multi2single_env, Monitor, make_adv_multi2singl
 from logger import setup_logger
 from ppo2_wrap import MyPPO2
 from value import MlpValue, MlpLstmValue
+from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
+
 # from common import get_zoo_path
 
 
@@ -53,6 +55,9 @@ parser.add_argument("--adv_coef_sch", type=str, default='const')
 parser.add_argument("--diff_coef_init", type=int, default=-3) # negative
 # diff loss schedule
 parser.add_argument("--diff_coef_sch", type=str, default='const')
+
+# whether use stable baseline policy
+parser.add_argument("--use_baseline_policy", type=bool, default='True')
 
 # load pretrained agent
 parser.add_argument("--load", type=int, default=0)
@@ -107,6 +112,8 @@ COEF_ADV_INIT = args.adv_coef_init
 COEF_ADV_SCHEDULE = args.adv_coef_sch
 COEF_DIFF_INIT = args.diff_coef_init
 COEF_DIFF_SCHEDULE = args.diff_coef_sch
+
+USE_BASELINE_POLICY = args.use_baseline_policy
 
 # callback hyperparameters
 CALLBACK_KEY = 'update'
@@ -198,7 +205,14 @@ if __name__=="__main__":
             IS_MLP = True
             vic_value = MlpValue
 
-        model = MyPPO2(None,
+        baseline_policy = None
+        if USE_BASELINE_POLICY:
+            if GAME_ENV in ['multicomp/YouShallNotPassHumans-v0', "multicomp/RunToGoalAnts-v0", "multicomp/RunToGoalHumans-v0"]:
+                baseline_policy = MlpPolicy
+            else:
+                baseline_policy = MlpLstmPolicy
+
+        model = MyPPO2(baseline_policy,
                        venv,
                        lr_schedule=LR_SCHEDULE,
                        coef_opp_init=COEF_VIC_INIT,
@@ -211,7 +225,8 @@ if __name__=="__main__":
                        nminibatches=NBATCHES, noptepochs=NEPOCHS,
                        learning_rate=LR,  verbose=1,
                        n_steps=NSTEPS, gamma=GAMMA, is_mlp=IS_MLP,
-                       env_name=env_name, opp_value=vic_value, vic_agt_id=VIC_AGT_ID, retrain_victim=True)
+                       env_name=env_name, opp_value=vic_value, vic_agt_id=VIC_AGT_ID,
+                       retrain_victim=True, use_baseline_policy=USE_BASELINE_POLICY)
 
         victim_train(venv, TRAINING_ITER, CHECKPOINT_INTERVAL, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
                      use_victim_ob=USE_VIC)

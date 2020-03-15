@@ -31,7 +31,8 @@ class MyPPO2(ActorCriticRLModel):
                  coef_abs_init=1, coef_abs_schedule='const', max_grad_norm=0.5, lam=0.95, nminibatches=4,
                  noptepochs=4, cliprange=0.2, verbose=0,  lr_schedule='const', tensorboard_log=None,
                  _init_setup_model=True, policy_kwargs=None, is_mlp=True, full_tensorboard_log=False,
-                 model_saved_loc=None, env_name=None, opp_value=None, retrain_victim=False, vic_agt_id=None):
+                 model_saved_loc=None, env_name=None, opp_value=None, retrain_victim=False,
+                 use_baseline_policy=None, vic_agt_id=None):
 
         """
         :param: policy: policy network and value function.
@@ -123,6 +124,7 @@ class MyPPO2(ActorCriticRLModel):
         self.opp_value = opp_value
 
         self.retrain_vicitim = retrain_victim
+        self.use_baseline_policy = use_baseline_policy
 
         # self.hyper_weights = hyper_settings[:6]
         # self.black_box_att = hyper_settings[6]
@@ -167,7 +169,7 @@ class MyPPO2(ActorCriticRLModel):
                 n_batch_step = None
                 n_batch_train = None
 
-                if self.retrain_vicitim:
+                if self.retrain_vicitim and not self.use_baseline_policy:
                     if issubclass(self.opp_value, MlpLstmValue):
                         assert self.n_envs % self.nminibatches == 0, "For recurrent policies, " \
                                                                      "the number of environments run in parallel should be a multiple of nminibatches."
@@ -258,7 +260,7 @@ class MyPPO2(ActorCriticRLModel):
                                                     n_batch_train)
 
                 with tf.variable_scope("loss", reuse=False):
-                    if self.retrain_vicitim:
+                    if self.retrain_vicitim and not self.use_baseline_policy:
                         self.action_ph = tf.placeholder(shape=[None, self.action_space.shape[0]],
                                                         dtype=tf.float32, name="action_ph")
                     else:
@@ -289,7 +291,7 @@ class MyPPO2(ActorCriticRLModel):
                     self.entropy = tf.reduce_mean(train_model.proba_distribution.entropy()) #()
 
                     # adversarial agent value function loss
-                    if self.retrain_vicitim:
+                    if self.retrain_vicitim and not self.use_baseline_policy:
                         vpred = tf.reshape(train_model.value_flat, [-1])
                     else:
                         vpred = train_model.value_flat
@@ -354,7 +356,7 @@ class MyPPO2(ActorCriticRLModel):
                     tf.summary.scalar('approximate_kullback-leibler', self.approxkl)
                     tf.summary.scalar('clip_factor', self.clipfrac)
                     tf.summary.scalar('loss', loss)
-                    if self.retrain_vicitim:
+                    if self.retrain_vicitim and not self.use_baseline_policy:
                         params = tf_util.get_trainable_vars("victim_policy")
                     else:
                         params = tf_util.get_trainable_vars("model")
@@ -427,7 +429,7 @@ class MyPPO2(ActorCriticRLModel):
                 self.initial_state = act_model.initial_state
                 tf.global_variables_initializer().run(session=self.sess)  # pylint: disable=E1101
 
-                if self.retrain_vicitim:
+                if self.retrain_vicitim and not self.use_baseline_policy:
                     if 'You' in self.env_name.split('/')[1]:
                         tag = 2
                     # elif 'Kick' in env_name.split('/')[1]:
@@ -480,7 +482,7 @@ class MyPPO2(ActorCriticRLModel):
 
         abs_advs = abs_returns - abs_values
         abs_advs = (abs_advs - abs_advs.mean()) / (abs_advs.std() + 1e-8)
-        if self.retrain_vicitim:
+        if self.retrain_vicitim and not self.use_baseline_policy:
             # obs: (n_envs//mini_batch, n_step, obs_shape)
             if issubclass(self.train_model.__class__, LSTMPolicy):
                 obs = obs.reshape((self.n_envs//self.nminibatches, self.n_steps, obs.shape[-1]))
@@ -690,7 +692,7 @@ class MyPPO2(ActorCriticRLModel):
                             if states is None:
                                 mb_states = states
                             else:
-                                if self.retrain_vicitim:
+                                if self.retrain_vicitim and not self.use_baseline_policy:
                                     mb_states = states[:, mb_env_inds, :]
                                 else:
                                     mb_states = states[mb_env_inds]
