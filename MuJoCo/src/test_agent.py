@@ -9,11 +9,9 @@ import numpy as np
 from common import env_list
 
 from stable_baselines.common.running_mean_std import RunningMeanStd
-from zoo_utils import setFromFlat, load_from_file
-
+from zoo_utils import setFromFlat, load_from_file, load_from_model
 
 def run(config):
-
     ENV_NAME = env_list[config.env]
 
     if ENV_NAME in ['multicomp/YouShallNotPassHumans-v0', "multicomp/RunToGoalAnts-v0", "multicomp/RunToGoalHumans-v0"]:
@@ -22,7 +20,6 @@ def run(config):
         policy_type="lstm"
 
     env = gym.make(ENV_NAME)
-
     epsilon = config.epsilon
     clip_obs = config.clip_obs
 
@@ -34,26 +31,34 @@ def run(config):
     sess = tf.Session(config=tf_config)
     sess.__enter__()
 
+    retrain_id = config.retrain_id
+
     policy = []
     for i in range(2):
         scope = "policy" + str(i)
+        if i == retrain_id:
+            _normalize = False
+        else:
+            _normalize = True
         if policy_type == "lstm":
             policy.append(LSTMPolicy(scope=scope, reuse=False,
                                      ob_space=env.observation_space.spaces[i],
                                      ac_space=env.action_space.spaces[i],
-                                     hiddens=[128, 128], normalize=False))
+                                     hiddens=[128, 128], normalize=_normalize))
         else:
             policy.append(MlpPolicyValue(scope=scope, reuse=False,
                                          ob_space=env.observation_space.spaces[i],
                                          ac_space=env.action_space.spaces[i],
-                                         hiddens=[64, 64], normalize=False))
+                                         hiddens=[64, 64], normalize=_normalize))
 
     # initialize uninitialized variables
     sess.run(tf.variables_initializer(tf.global_variables()))
-
-    params = [load_from_file(param_pkl_path=path) for path in param_paths]
-    for i in range(len(policy)):
-        setFromFlat(policy[i].get_variables(), params[i])
+    for i in range(2):
+        if i == retrain_id:
+            param = load_from_model(param_pkl_path=param_paths[i])
+        else:
+            param = load_from_file(param_pkl_path=param_paths[i])
+        setFromFlat(policy[i].get_variables(), param)
 
     max_episodes = config.max_episodes
     num_episodes = 0
@@ -62,22 +67,20 @@ def run(config):
     total_scores = [0 for _ in range(len(policy))]
 
 
-    obs0_rms = RunningMeanStd(shape=env.observation_space.spaces[0].shape)
-    obs1_rms = RunningMeanStd(shape=env.observation_space.spaces[1].shape)
+    obs_rms = load_from_file(config.norm_path)
 
     # total_scores = np.asarray(total_scores)
     observation = env.reset()
     print("-"*5 + " Episode %d " % (num_episodes+1) + "-"*5)
     while num_episodes < max_episodes:
         # normalize the observation-0 and observation-1
-
-        obs0_rms.update(observation[0].copy())
-        obs_0 = np.clip((observation[0] - obs0_rms.mean) / np.sqrt(obs0_rms.var + epsilon),
+        obs_0, obs_1 = observation
+        if retrain_id == 0:
+            obs_0 = np.clip((obs_0 - obs_rms.mean) / np.sqrt(obs_rms.var + epsilon),
                                  -clip_obs, clip_obs)
-
-        obs1_rms.update(observation[1].copy())
-        obs_1 = np.clip((observation[1] - obs1_rms.mean) / np.sqrt(obs0_rms.var + epsilon),
-                                 -clip_obs, clip_obs)
+        else:
+            obs_1 = np.clip((obs_1 - obs_rms.mean) / np.sqrt(obs_rms.var + epsilon),
+                            -clip_obs, clip_obs)
 
         action_0 = policy[0].act(stochastic=False, observation=obs_0)[0]
         action_1 = policy[1].act(stochastic=False, observation=obs_1)[0]
@@ -108,13 +111,14 @@ def run(config):
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description="Environments for Multi-agent competition")
     p.add_argument("--env", default=2, type=int)
-    p.add_argument("--opp-path", default="../multiagent-competition/agent-zoo/you-shall-not-pass/agent1_parameters-v1pkl", type=str)
-    p.add_argument("--vic_path", default="../multiagent-competition/agent-zoo/you-shall-not-pass/agent2_parameters-v1.pkl", type=str)
+    p.add_argument("--retrain_id", default=0, type=int)
+    p.add_argument("--opp-path", default=None, type=str)
+    p.add_argument("--vic_path", default=None, type=str)
+    p.add_argument("--norm_path", default=None, type=str)
 
     p.add_argument("--max-episodes", default=500, help="max number of matches", type=int)
     p.add_argument("--epsilon", default=1e-8, type=float)
     p.add_argument("--clip_obs", default=10, type=float)
-
 
     config = p.parse_args()
     run(config)
