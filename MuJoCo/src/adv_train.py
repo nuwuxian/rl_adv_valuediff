@@ -1,6 +1,7 @@
 import os
 import argparse
 import gym
+import os.path as osp
 from common import env_list
 from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
@@ -19,7 +20,7 @@ from value import MlpValue, MlpLstmValue
 ##################
 parser = argparse.ArgumentParser()
 # game env
-parser.add_argument("--env", type=int, default=4)
+parser.add_argument("--env", type=int, default=2)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
@@ -30,12 +31,12 @@ parser.add_argument("--vic_agt_id", type=int, default=3)
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
 # adv agent network
-parser.add_argument("--adv_net", type=str, default='LSTM')
+parser.add_argument("--adv_net", type=str, default='MLP')
 
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='linear')
 # number of steps / lstm length should be small
-parser.add_argument("--nsteps", type=int, default=128)
+parser.add_argument("--nsteps", type=int, default=2048)
 
 # victim loss coefficient.
 parser.add_argument("--vic_coef_init", type=int, default=1) # positive
@@ -46,7 +47,7 @@ parser.add_argument("--adv_coef_init", type=int, default=-1) # negative
 # adv loss schedule
 parser.add_argument("--adv_coef_sch", type=str, default='const')
 # diff loss coefficient.
-parser.add_argument("--diff_coef_init", type=int, default=-3) # negative
+parser.add_argument("--diff_coef_init", type=int, default=0) # negative
 # diff loss schedule
 parser.add_argument("--diff_coef_sch", type=str, default='const')
 
@@ -83,10 +84,10 @@ ADV_NET = args.adv_net
 
 # training hyperparameters
 # total training iterations.
-TRAINING_ITER = 40000000
+TRAINING_ITER = 20000000
 NBATCHES = 4
 NEPOCHS = 4
-LR = 8e-4
+LR = 3e-4
 LR_SCHEDULE = args.lr_sch
 NSTEPS = args.nsteps
 CHECKPOINT_STEP = 1000000
@@ -106,6 +107,7 @@ COEF_DIFF_SCHEDULE = args.diff_coef_sch
 CALLBACK_KEY = 'update'
 CALLBACK_MUL = 16384
 LOG_INTERVAL = 2048
+CHECKPOINT_INTERVAL = 131072
 
 PRETRAIN_TEMPLETE = "../agent-zoo/%s-pretrained-expert-1000-1000-1e-03.pkl"
 
@@ -122,14 +124,29 @@ if 'You' in GAME_ENV.split('/')[1]:
 else:
     REVERSE = False
 
+def _save(model, root_dir, save_callbacks):
+    os.makedirs(root_dir, exist_ok=True)
+    model_path = osp.join(root_dir, 'model.pkl')
+    model.save(model_path)
+    save_callbacks(root_dir)
 
-def Adv_train(env, total_timesteps, log_interval, callback_key, callback_mul, logger, seed, use_victim_ob):
+
+
+def Adv_train(env, total_timesteps, checkpoint_interval, log_interval, callback_key, callback_mul, logger, seed, use_victim_ob):
     log_callback = lambda logger, locals, globals: env.log_callback(logger)
+    # save obs-mean & variance
+    save_callback = lambda root_dir: env.save_running_average(root_dir)
     last_log = 0
+    last_checkpoint = 0
 
     def callback(locals, globals):
-        nonlocal last_log
+        nonlocal last_checkpoint, last_log
         step = locals[callback_key] * callback_mul
+        if step - checkpoint_interval > last_checkpoint:
+            checkpoint_dir = osp.join(out_dir, 'checkpoints', f'{step:012}')
+            _save(model, checkpoint_dir, save_callback)
+            last_checkpoint = step
+
         if step - log_interval > last_log:
             log_callback(logger, locals, globals)
             last_log = step
@@ -197,6 +214,6 @@ if __name__=="__main__":
                        n_steps=NSTEPS, gamma=GAMMA, is_mlp=IS_MLP,
                        env_name=env_name, opp_value=vic_value, retrain_victim=False)
 
-        Adv_train(venv, TRAINING_ITER, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
+        Adv_train(venv, TRAINING_ITER, CHECKPOINT_INTERVAL, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
                   use_victim_ob=USE_VIC)
         model.save(os.path.join(out_dir, env_name.split('/')[1]))
