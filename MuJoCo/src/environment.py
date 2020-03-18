@@ -157,6 +157,12 @@ class Multi2SingleEnv(Wrapper):
         # obtain needed information from the environment.
         obs, rewards, dones, infos = self.env.step(actions)
 
+        if dones[0]:
+            if infos[0]['reward_remaining']==0:
+                infos[0]['reward_remaining'] = -1000
+            if infos[1]['reward_remaining']==0:
+                infos[1]['reward_remaining'] = -1000
+
         # separate victim and adversarial information.
         if self.agent_idx == 0:
           self.ob, ob = obs
@@ -273,7 +279,8 @@ def apply_reward_shapping(infos, shaping_params, scheduler):
     else:
         anneal_frac = shaping_params.get('anneal_frac')
         if anneal_frac is not None:
-            rew_shape_annealer = LinearAnnealer(1, 0, anneal_frac)
+            rew_shape_annealer = ConstantAnnealer(anneal_frac)
+            # rew_shape_annealer = LinearAnnealer(1, 0, anneal_frac)
         else:
             rew_shape_annealer = ConstantAnnealer(0.5)
 

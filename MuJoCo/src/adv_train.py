@@ -20,13 +20,13 @@ from value import MlpValue, MlpLstmValue
 ##################
 parser = argparse.ArgumentParser()
 # game env
-parser.add_argument("--env", type=int, default=2)
+parser.add_argument("--env", type=int, default=4)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
-parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
+parser.add_argument("--n_games", type=int, default=2) # N_GAME = 8
 # which victim agent to use
-parser.add_argument("--vic_agt_id", type=int, default=3)
+parser.add_argument("--vic_agt_id", type=int, default=1)
 
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
@@ -47,7 +47,7 @@ parser.add_argument("--adv_coef_init", type=int, default=-1) # negative
 # adv loss schedule
 parser.add_argument("--adv_coef_sch", type=str, default='const')
 # diff loss coefficient.
-parser.add_argument("--diff_coef_init", type=int, default=0) # negative
+parser.add_argument("--diff_coef_init", type=int, default=1) # negative
 # diff loss schedule
 parser.add_argument("--diff_coef_sch", type=str, default='const')
 
@@ -69,8 +69,8 @@ VIC_AGT_ID = args.vic_agt_id
 
 # reward hyperparameters
 # reward shaping parameters
-REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 0.1}, 'sparse': {'reward_remaining': 0.01}},
-                    'anneal_frac': 0}
+REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 1}, 'sparse': {'reward_remaining': 0.01}},
+                    'anneal_frac': 0.1}
 
 # reward discount factor
 GAMMA = 0.99
