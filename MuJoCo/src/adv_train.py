@@ -105,8 +105,11 @@ COEF_DIFF_SCHEDULE = args.diff_coef_sch
 
 # callback hyperparameters
 CALLBACK_KEY = 'update'
+# n_env * n_steps
 CALLBACK_MUL = 16384
 LOG_INTERVAL = 2048
+
+# save every 8 nupdates
 CHECKPOINT_INTERVAL = 131072
 
 PRETRAIN_TEMPLETE = "../agent-zoo/%s-pretrained-expert-1000-1000-1e-03.pkl"
