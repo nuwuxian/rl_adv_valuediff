@@ -72,7 +72,7 @@ class Monitor(VecEnvWrapper):
 
 class Multi2SingleEnv(Wrapper):
 
-    def __init__(self, env, agent, agent_idx, shaping_params, scheduler, norm=True,
+    def __init__(self, env, env_name, agent, agent_idx, shaping_params, scheduler, norm=True,
                  retrain_victim=False, clip_obs=10., clip_reward=10., gamma=0.99, epsilon=1e-8):
 
         """ from multi-agent environment to single-agent environment.
@@ -89,6 +89,7 @@ class Multi2SingleEnv(Wrapper):
         :param: epsilon: additive coefficient.
         """
         Wrapper.__init__(self, env)
+        self.env_name = env_name
         self.agent = agent
         self.reward = 0
         # observation dimensionality
@@ -160,7 +161,7 @@ class Multi2SingleEnv(Wrapper):
         # obtain needed information from the environment.
         obs, rewards, dones, infos = self.env.step(actions)
 
-        if dones[0]:
+        if dones[0] and 'Ant' in self.env_name:
             if infos[0]['reward_remaining']==0:
                 infos[0]['reward_remaining'] = -1000
             if infos[1]['reward_remaining']==0:
@@ -253,7 +254,7 @@ def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, reve
     zoo_agent = make_zoo_agent(env_name, env.observation_space.spaces[1], env.action_space.spaces[1],
                                tag=tag, version=version)
 
-    return Multi2SingleEnv(env, zoo_agent, reverse, shaping_params, scheduler)
+    return Multi2SingleEnv(env, env_name, zoo_agent, reverse, shaping_params, scheduler)
 
 
 def make_adv_multi2single_env(env_name, adv_agent_path, adv_agent_norm_path, shaping_params, scheduler, adv_ismlp, n_envs=1, reverse=True):
