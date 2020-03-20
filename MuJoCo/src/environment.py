@@ -142,7 +142,10 @@ class Multi2SingleEnv(Wrapper):
         self.oppo_ob = np.clip((self.oppo_ob - self.obs_rms.mean) / np.sqrt(self.obs_rms.var + self.epsilon),
                                -self.clip_obs, self.clip_obs)
         if self.retrain_victim:
-            self_action = self.agent.act(observation=self.oppo_ob[None, :], reward=self.reward, done=self.done).flatten()
+            if not self.agent.adv_loadnorm:
+                self_action = self.agent.act(observation=self.oppo_ob[None, :], reward=self.reward, done=self.done).flatten()
+            else:
+                self_action = self.agent.act(observation=self.ob[None,:], reward=self.reward, done=self.done).flatten()
         else:
             self_action = self.agent.act(observation=self.ob, reward=self.reward, done=self.done)
         # note: current observation
@@ -156,6 +159,12 @@ class Multi2SingleEnv(Wrapper):
             
         # obtain needed information from the environment.
         obs, rewards, dones, infos = self.env.step(actions)
+
+        if dones[0]:
+            if infos[0]['reward_remaining']==0:
+                infos[0]['reward_remaining'] = -1000
+            if infos[1]['reward_remaining']==0:
+                infos[1]['reward_remaining'] = -1000
 
         # separate victim and adversarial information.
         if self.agent_idx == 0:
@@ -247,10 +256,10 @@ def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, reve
     return Multi2SingleEnv(env, zoo_agent, reverse, shaping_params, scheduler)
 
 
-def make_adv_multi2single_env(env_name, adv_agent_path, shaping_params, scheduler, adv_ismlp, n_envs=1, reverse=True):
+def make_adv_multi2single_env(env_name, adv_agent_path, adv_agent_norm_path, shaping_params, scheduler, adv_ismlp, n_envs=1, reverse=True):
     env = gym.make(env_name)
     zoo_agent = make_adv_agent(env.observation_space.spaces[1], env.action_space.spaces[1], n_envs, adv_agent_path,
-                               adv_ismlp=adv_ismlp)
+                               adv_ismlp=adv_ismlp, adv_obs_normpath=adv_agent_norm_path)
 
     return Multi2SingleEnv(env, zoo_agent, agent_idx=reverse, shaping_params=shaping_params,
                            scheduler=scheduler, retrain_victim=True)
@@ -273,7 +282,8 @@ def apply_reward_shapping(infos, shaping_params, scheduler):
     else:
         anneal_frac = shaping_params.get('anneal_frac')
         if anneal_frac is not None:
-            rew_shape_annealer = LinearAnnealer(1, 0, anneal_frac)
+            rew_shape_annealer = ConstantAnnealer(anneal_frac)
+            # rew_shape_annealer = LinearAnnealer(1, 0, anneal_frac)
         else:
             rew_shape_annealer = ConstantAnnealer(0.5)
 

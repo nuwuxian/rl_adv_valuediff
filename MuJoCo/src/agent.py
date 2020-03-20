@@ -205,18 +205,29 @@ def load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp=Tru
     return adv_agent
 
 class AdvAgent(object):
-    def __init__(self, ob_space, action_space, n_envs, adv_model_path, adv_ismlp):
+    def __init__(self, ob_space, action_space, n_envs, adv_model_path, adv_ismlp, adv_obs_normpath=None):
         self.agent = load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp)
         self.state = None
+        # whether adv-agent load mean and variance
+        self.adv_loadnorm = False
+
+        if adv_obs_normpath != None:
+            self.adv_loadnorm = True
+            self.obs_rms = load_from_file(adv_obs_normpath)
+            self.epsilon = 1e-8
+            self.clip_obs = 10
 
     def act(self, observation, reward=None, done=None):
         # todo change to agent.predict prediction normralization.
+        # todo check dim
+        if self.adv_loadnorm:
+            observation = np.clip((observation - self.obs_rms.mean[None,:]) / np.sqrt(self.obs_rms.var[None,:] + self.epsilon),
+                                 -self.clip_obs, self.clip_obs)
         action, _, self.state, _ = self.agent.step(obs=observation, state=self.state, mask=done, deterministic=True)
         return action
     def reset(self):
         self.state = None
 
 
-def make_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp):
-
-    return AdvAgent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp)
+def make_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp, adv_obs_normpath=None):
+    return AdvAgent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp, adv_obs_normpath)

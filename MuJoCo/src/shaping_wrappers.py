@@ -84,7 +84,8 @@ def apply_reward_wrapper(single_env, shaping_params, agent_idx, scheduler):
     else:
         anneal_frac = shaping_params.get('anneal_frac')
         if anneal_frac is not None:
-            rew_shape_annealer = LinearAnnealer(1, 0, anneal_frac)
+            # rew_shape_annealer = LinearAnnealer(1, 0, anneal_frac)
+            rew_shape_annealer = ConstantAnnealer(anneal_frac)
         else:
             # In this case, we weight the reward terms as per shaping_params
             # but the ratio of sparse to dense reward remains constant.

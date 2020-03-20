@@ -31,7 +31,7 @@ class MyPPO2(ActorCriticRLModel):
                  coef_abs_init=1, coef_abs_schedule='const', max_grad_norm=0.5, lam=0.95, nminibatches=4,
                  noptepochs=4, cliprange=0.2, verbose=0,  lr_schedule='const', tensorboard_log=None,
                  _init_setup_model=True, policy_kwargs=None, is_mlp=True, full_tensorboard_log=False,
-                 model_saved_loc=None, env_name=None, opp_value=None, retrain_victim=False,
+                 model_saved_loc=None, env_name=None, opp_value=None, retrain_victim=False, norm_victim=False,
                  use_baseline_policy=None, vic_agt_id=None):
 
         """
@@ -124,6 +124,7 @@ class MyPPO2(ActorCriticRLModel):
         self.opp_value = opp_value
 
         self.retrain_vicitim = retrain_victim
+        self.norm_victim = norm_victim
         self.use_baseline_policy = use_baseline_policy
 
         # self.hyper_weights = hyper_settings[:6]
@@ -181,13 +182,13 @@ class MyPPO2(ActorCriticRLModel):
                         act_model = MlpPolicyValue(scope="victim_policy", reuse=False,
                                                    ob_space=self.observation_space,
                                                    ac_space=self.action_space, sess=self.sess,
-                                                   hiddens=[64, 64], normalize=False)
+                                                   hiddens=[64, 64], normalize=self.norm_victim)
                         with tf.variable_scope("train_model", reuse=True,
                                                custom_getter=tf_util.outer_scope_getter("train_model")):
                             train_model = MlpPolicyValue(scope="victim_policy", reuse=True,
                                                       ob_space=self.observation_space,
                                                       ac_space=self.action_space, sess=self.sess,
-                                                      hiddens=[64, 64], normalize=False)
+                                                      hiddens=[64, 64], normalize=self.norm_victim)
                     else:
                         n_batch_step = self.n_envs
                         n_batch_train = self.n_batch // self.nminibatches
@@ -195,14 +196,14 @@ class MyPPO2(ActorCriticRLModel):
                         act_model = LSTMPolicy(scope="victim_policy", reuse=False,
                                                 ob_space=self.observation_space, n_envs=self.n_envs,
                                                 ac_space=self.action_space, sess=self.sess,
-                                                hiddens=[128, 128], normalize=False)
+                                                hiddens=[128, 128], normalize=self.norm_victim)
                         with tf.variable_scope("train_model", reuse=True,
                                                custom_getter=tf_util.outer_scope_getter("train_model")):
                             train_model = LSTMPolicy(scope="victim_policy", reuse=True,
                                                      ob_space=self.observation_space, n_envs=self.n_envs,
                                                      n_batch_train = n_batch_train,
                                                       ac_space=self.action_space, sess=self.sess,
-                                                      hiddens=[128, 128], normalize=False)
+                                                      hiddens=[128, 128], normalize=self.norm_victim)
                 else:
                     if issubclass(self.policy, MlpLstmPolicy) or issubclass(self.opp_value, MlpLstmValue):
                         assert self.n_envs % self.nminibatches == 0, "For recurrent policies, " \
@@ -447,7 +448,10 @@ class MyPPO2(ActorCriticRLModel):
 
                     param = load_from_file(param_pkl_path=env_path)
                     # tf.trainable_variables only works in the current function.
-                    variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="victim_policy")
+                    # load the running mean and variance / trainable_variables
+                    ret_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="victim_policy/retfilter")
+                    obs_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="victim_policy/obsfilter")
+                    variables = ret_variable + obs_variable + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="victim_policy")
                     setFromFlat(variables, param, self.sess)
 
                 self.summary = tf.summary.merge_all()

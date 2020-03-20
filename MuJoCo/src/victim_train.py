@@ -22,7 +22,7 @@ from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 ##################
 parser = argparse.ArgumentParser()
 # game env
-parser.add_argument("--env", type=int, default=4)
+parser.add_argument("--env", type=int, default=2)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
@@ -31,17 +31,18 @@ parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 parser.add_argument("--vic_agt_id", type=int, default=3)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='/home/xkw5132/agent-zoo/SumoAnts-v0_1_MLP_MLP_1_const_-1_const_-1_const_False/20200303_124759-0/SumoAnts-v0.pkl')
+parser.add_argument("--adv_path", type=str, default='/home/xkw5132/000019906560/model.pkl')
 # parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/rl_newloss/MuJoCo/agent-zoo/YouShallNotPassHumans-v0_3_MLP_MLP_1_const_0_const_0_const_False/20200218_104638-0/YouShallNotPassHumans-v0.pkl')
 parser.add_argument("--adv_ismlp", type=bool, default=True)
-
+# adversarial agent's observation norm mean / variance path
+parser.add_argument("--adv_obs_normpath", type=str, default='/home/xkw5132/000019906560/obs_rms.pkl')
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
 
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='linear')
 # number of steps / lstm length should be small
-parser.add_argument("--nsteps", type=int, default=32)
+parser.add_argument("--nsteps", type=int, default=2048)
 
 # victim loss coefficient.
 parser.add_argument("--vic_coef_init", type=int, default=1) # positive
@@ -59,6 +60,8 @@ parser.add_argument("--diff_coef_sch", type=str, default='const')
 # whether use stable baseline policy
 parser.add_argument("--use_baseline_policy", type=bool, default=False)
 
+# whether use zoo_utils's policy normalization when retrain victim
+parser.add_argument("--load_victim_norm", type=bool, default=True)
 # load pretrained agent
 parser.add_argument("--load", type=int, default=0)
 # visualize the video
@@ -67,6 +70,7 @@ args = parser.parse_args()
 
 # Adversarial agent path.
 ADV_AGENT_PATH = args.adv_path
+ADV_AGENT_NORM_PATH = args.adv_obs_normpath
 ADV_ISMLP = args.adv_ismlp
 
 # environment selection
@@ -114,6 +118,7 @@ COEF_DIFF_INIT = args.diff_coef_init
 COEF_DIFF_SCHEDULE = args.diff_coef_sch
 
 USE_BASELINE_POLICY = args.use_baseline_policy
+LOAD_VICTIM_NORM = args.load_victim_norm
 
 # callback hyperparameters
 CALLBACK_KEY = 'update'
@@ -175,7 +180,7 @@ if __name__=="__main__":
         env_name = GAME_ENV
 
         # multi to single
-        venv = SubprocVecEnv([lambda: make_adv_multi2single_env(env_name, ADV_AGENT_PATH,
+        venv = SubprocVecEnv([lambda: make_adv_multi2single_env(env_name, ADV_AGENT_PATH, ADV_AGENT_NORM_PATH,
                                                                 REW_SHAPE_PARAMS, scheduler, ADV_ISMLP,
                                                                 reverse=REVERSE) for i in range(N_GAME)])
         # test
@@ -189,7 +194,7 @@ if __name__=="__main__":
                                               agent_idx=0, shaping_params=REW_SHAPE_PARAMS)
 
         # normalize reward
-        venv = VecNormalize(rew_shape_venv)
+        venv = VecNormalize(rew_shape_venv, norm_obs=not LOAD_VICTIM_NORM)
 
         # makedir output
         out_dir, logger = setup_logger(SAVE_DIR, EXP_NAME)
@@ -226,7 +231,7 @@ if __name__=="__main__":
                        learning_rate=LR,  verbose=1,
                        n_steps=NSTEPS, gamma=GAMMA, is_mlp=IS_MLP,
                        env_name=env_name, opp_value=vic_value, vic_agt_id=VIC_AGT_ID,
-                       retrain_victim=True, use_baseline_policy=USE_BASELINE_POLICY)
+                       retrain_victim=True, norm_victim=LOAD_VICTIM_NORM, use_baseline_policy=USE_BASELINE_POLICY)
 
         victim_train(venv, TRAINING_ITER, CHECKPOINT_INTERVAL, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED,
                      use_victim_ob=USE_VIC)
