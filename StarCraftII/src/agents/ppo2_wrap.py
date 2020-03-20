@@ -200,7 +200,8 @@ class Adv_Model(object):
             return sess.run(params)
 
         def load_params(loaded_params):
-            sess.run(param_assign_ops, feed_dict={p : v for p, v in zip(new_params, loaded_params)})
+            sess.run(param_assign_ops[0:len(loaded_params)],
+                     feed_dict={p : v for p, v in zip(new_params[0:len(loaded_params)], loaded_params)})
 
         self.train = train
         self.train_model = train_model
