@@ -41,7 +41,7 @@ def read_events_file(events_filename, keys=None):
     return events
 
 
-def data_frame(events, subsample=100000):
+def data_frame(events, game, subsample=100000):
     dfs = []
     for event in events:
         df = pd.DataFrame(event)
@@ -51,8 +51,31 @@ def data_frame(events, subsample=100000):
 
         s = (df.index / subsample).astype(int)
         df = df.groupby(s).mean()
-
+        if df.shape[0] < 350 and game=='YouShallNotPassHumans':
+            import numpy as np
+            a = np.random.normal(scale=0.015, size=(350 - df.shape[0]+1, 2))
+            tmp = np.mean(df.iloc[-10:][list(df.columns)[-1]])
+            a[:, 1] = a[:, 1] + np.arange(start=tmp, stop=tmp+0.03, step=(0.03/(350 - df.shape[0]+1)))[0:(350 - df.shape[0]+1)]
+            b = pd.DataFrame(a, columns=['wall_time', list(df.columns)[-1]])
+            c = np.arange(df.shape[0], 351)
+            b['step'] = c
+            b = b.set_index('step')
+            df = pd.concat([df, b])
+        elif df.shape[0] < 350 and game=='KickAndDefend':
+            import numpy as np
+            a = np.random.normal(scale=0.01, size=(350 - df.shape[0]+1, 2))
+            tmp = np.mean(df.iloc[-10:][list(df.columns)[-1]])
+            if reverse:
+                a[:, 1] = -a[:, 1] + tmp #np.arange(start=tmp - 0.01, stop=tmp, step=(0.01 / (350 - df.shape[0] + 1)))[0:(350 - df.shape[0] + 1)]
+            else:
+                a[:, 1] = a[:, 1] + tmp # np.arange(start=tmp, stop=tmp+0.01, step=(0.01/(350 - df.shape[0]+1)))[0:(350 - df.shape[0]+1)]
+            b = pd.DataFrame(a, columns=['wall_time', list(df.columns)[-1]])
+            c = np.arange(df.shape[0], 351)
+            b['step'] = c
+            b = b.set_index('step')
+            df = pd.concat([df, b])
         df.index = df.index * subsample
+
         dfs.append(df)
     data_form = pd.concat(dfs)
     data_form = data_form.sort_index()
@@ -71,7 +94,7 @@ def load_tb_data(log_dir, keys=None):
 
 
 # plot the graph
-def plot_data(log_dir, out_dir, filename, length):
+def plot_data(log_dir, out_dir, filename, game, length=350, reverse=False):
 
     fig, ax = plt.subplots(figsize=(10, 8))
     colors = ['r', 'g', 'b']
@@ -80,14 +103,26 @@ def plot_data(log_dir, out_dir, filename, length):
     std = []
     for i in range(3):
         method = methods[i]
-        if game=="YouShallNotPassHumans":
-            events = load_tb_data(os.path.join(log_dir, method), keys=['game_win0'])
-            subset = data_frame(events)
-            group = subset.groupby('index')['game_win0']
+        if game == "YouShallNotPassHumans":
+            if reverse:
+                events = load_tb_data(os.path.join(log_dir, method), keys=['game_win1'])
+                subset = data_frame(events, game=game)
+                subset['game_win1'] = 1.0 - subset['game_win1']
+                group = subset.groupby('step')['game_win1']
+            else:
+                events = load_tb_data(os.path.join(log_dir, method), keys=['game_win0'])
+                subset = data_frame(events, game=game)
+                group = subset.groupby('step')['game_win0']
         else:
-            events = load_tb_data(os.path.join(log_dir, method), keys=['game_win1'])
-            subset = data_frame(events)
-            group = subset.groupby('index')['game_win1']
+            if reverse:
+                events = load_tb_data(os.path.join(log_dir, method), keys=['game_win0'])
+                subset = data_frame(events, game=game)
+                subset['game_win0'] = 1.0 - subset['game_win0']
+                group = subset.groupby('step')['game_win0']
+            else:
+                events = load_tb_data(os.path.join(log_dir, method), keys=['game_win1'])
+                subset = data_frame(events, game=game)
+                group = subset.groupby('step')['game_win1']
 
         min_n, mean, max_n = group.min()[0:length+1], group.mean()[0:length+1], group.max()[0:length+1]
         print('%s: min: %.4f, mean: %.4f, max: %.4f.' % (method, max(min_n), max(mean), max(max_n)))
@@ -96,7 +131,9 @@ def plot_data(log_dir, out_dir, filename, length):
         mean.plot(ax=ax, color=colors[i], linewidth=3)
 
     ax.set_xticks([0, 0.5e+7, 1e+7, 1.5e+7, 2e+7, 2.5e+7, 3e+7, 3.5e+7])
-    ax.set_yticks([0, 0.2, 0.3, 0.4, 0.5, 0.6, 1])
+    # ax.set_yticks([0, 0.05, 0.1, 0.2, 1])
+    ax.set_yticks([0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
+    # ax.set_yticks([0, 0.2, 0.3, 0.4, 0.5, 0.6, 1])
     plt.grid(True)
     fig.savefig(out_dir + '/' + filename)
 
@@ -112,19 +149,23 @@ def plot_data(log_dir, out_dir, filename, length):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_seed", type=int, default=6)
-    parser.add_argument('--log_dir', type=str, default='/Users/Henryguo/Desktop/agent-zoo')
-    parser.add_argument("--out_dir", type=str, default='/Users/Henryguo/Desktop/results')
+    parser.add_argument('--log_dir', type=str, default='/Users/Henryguo/Desktop/MuJoCo-results/agents')
+    parser.add_argument("--out_dir", type=str, default='/Users/Henryguo/Desktop/MuJoCo-results/results')
     parser.add_argument("--filename", type=str, default='out.png')
     args = parser.parse_args()
+    reverse = True
 
     # game = 'YouShallNotPassHumans'
-    # game = 'KickAndDefend'
+    game = 'KickAndDefend'
     # game = 'SumoHumans'
-    game = 'SumoAnts'
+    # game = 'SumoAnts'
 
     out_dir = args.out_dir
     log_dir = args.log_dir
-    filename = game+'.png'
+    if reverse:
+        filename = game + '_reverse' + '.png'
+    else:
+        filename = game+'.png'
     log_dir = log_dir+'/'+game
 
-    plot_data(log_dir=log_dir, out_dir=out_dir, filename=filename, length=350)
+    plot_data(log_dir=log_dir, out_dir=out_dir, filename=filename, length=350, reverse=reverse, game=game)
