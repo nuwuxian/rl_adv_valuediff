@@ -670,12 +670,14 @@ class Adv_Learner(object):
         loss_game = sum([info['loss'] for info in self._episode_infos])
         winning_rate = sum([info['win'] for info in self._episode_infos]) * 1.0 / total_game
         win_count_tie = (((win_game - loss_game) * 1.0 / (total_game)) + 1) / 2.0
-        tprint('Total_Game is %d, Winning_rate is %f, Winning_rate_tie is %f, win %d, tie %d, loss %d,'
-               % (total_game, winning_rate, win_count_tie, win_game, tie_game, loss_game))
+        win_plus_tie = (win_game + tie_game) * 1.0 / (total_game)
+        tprint('Total_Game is %d, Winning_rate is %f, Winning_rate_tie is %f, Winning_plus_tie is %f,'
+               'win %d, tie %d, loss %d,'
+               % (total_game, winning_rate, win_count_tie,  win_plus_tie, win_game, tie_game, loss_game))
         if self._save_dir is not None:
             os.makedirs(self._save_dir, exist_ok=True)
             fid = open(self._save_dir + '/Log.txt', 'a+')
-            fid.write("%d %f\n" %(updates, winning_rate))
+            fid.write("%d %f %f %f\n" %(updates, winning_rate, win_count_tie, win_plus_tie))
             fid.close()
 
         tprint("Update: %d	Train-fps: %.1f	Rollout-fps: %.1f	"
