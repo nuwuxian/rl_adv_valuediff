@@ -20,7 +20,7 @@ from value import MlpValue, MlpLstmValue
 ##################
 parser = argparse.ArgumentParser()
 # game env
-parser.add_argument("--env", type=int, default=4)
+parser.add_argument("--env", type=int, default=3)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
@@ -39,15 +39,15 @@ parser.add_argument("--lr_sch", type=str, default='linear')
 parser.add_argument("--nsteps", type=int, default=2048)
 
 # victim loss coefficient.
-parser.add_argument("--vic_coef_init", type=int, default=1) # positive
+parser.add_argument("--vic_coef_init", type=int, default=0) # positive
 # victim loss schedule
 parser.add_argument("--vic_coef_sch", type=str, default='const')
 # adv loss coefficient.
-parser.add_argument("--adv_coef_init", type=int, default=-1) # negative
+parser.add_argument("--adv_coef_init", type=int, default=-0) # negative
 # adv loss schedule
 parser.add_argument("--adv_coef_sch", type=str, default='const')
 # diff loss coefficient.
-parser.add_argument("--diff_coef_init", type=int, default=1) # negative
+parser.add_argument("--diff_coef_init", type=int, default=0) # negative
 # diff loss schedule
 parser.add_argument("--diff_coef_sch", type=str, default='const')
 
@@ -69,8 +69,19 @@ VIC_AGT_ID = args.vic_agt_id
 
 # reward hyperparameters
 # reward shaping parameters
-REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 1}, 'sparse': {'reward_remaining': 0.01}},
-                    'anneal_frac': 0.1}
+
+# KickAndDefend
+REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 0.5, 'reward_contact': 1, 'reward_survive': 0.5,},
+                                'sparse': {'reward_remaining': 0.01}},
+                   'anneal_frac': 0.1}
+
+## sumoants
+# REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 1}, 'sparse': {'reward_remaining': 0.01}},
+#                    'anneal_frac': 0.1}
+
+## sumohuman and you shall not pass
+# REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 0.1}, 'sparse': {'reward_remaining': 0.01}},
+#                     'anneal_frac': 0}
 
 # reward discount factor
 GAMMA = 0.99
