@@ -40,15 +40,15 @@ flags.DEFINE_float("learn_act_speed_ratio", 0, "Maximum learner/actor ratio.")
 flags.DEFINE_string("game_version", '4.6', "Game core version.")
 flags.DEFINE_integer("step_mul", 32, "Game steps per agent step.")
 flags.DEFINE_string("difficulties", '1,2,4,6,9,A', "Bot's strengths.")
-flags.DEFINE_boolean("disable_fog", False, "Disable fog-of-war.")
+flags.DEFINE_boolean("disable_fog", True, "Disable fog-of-war.")
 flags.DEFINE_boolean("use_all_combat_actions", False, "Use all combat actions.")
 flags.DEFINE_boolean("use_region_features", False, "Use region features")
 flags.DEFINE_boolean("use_action_mask", True, "Use region-wise combat.")
 # reward shaping
-flags.DEFINE_string("reward_shaping_type", "v1", "type of reward shaping.")
+flags.DEFINE_string("reward_shaping_type", "None", "type of reward shaping.")
 
 # opponent model related hyperparameters.
-flags.DEFINE_string("opp_model_path", '/home/wenbo/target-agent/checkpoint-100000', "Opponent Model Path")
+flags.DEFINE_string("opp_model_path", '/home/wenbo/target-agent/checkpoint-1050000-2', "Opponent Model Path")
 flags.DEFINE_boolean("use_victim_ob", False, "whether use victim obs")
 
 # loss function related hyperparameters
@@ -78,7 +78,7 @@ flags.DEFINE_integer("batch_size", 8, "Batch size.") # batch_size * unroll_lengt
 flags.DEFINE_float("learning_rate", 1e-5, "Learning rate.")
 
 # save and print.
-flags.DEFINE_string("init_model_path", None, "Initial model path.")
+flags.DEFINE_string("init_model_path", '/home/wenbo/target-agent/checkpoint-100000', "Initial model path.")
 flags.DEFINE_string("save_dir", "/home/wenbo/adv_shape_v1/", "Dir to save models to")
 flags.DEFINE_integer("save_interval", 50000, "Model saving frequency.")
 flags.DEFINE_integer("print_interval", 1000, "Print train cost frequency.")

@@ -200,8 +200,7 @@ class Adv_Model(object):
             return sess.run(params)
 
         def load_params(loaded_params):
-            sess.run(param_assign_ops[0:len(loaded_params)],
-                     feed_dict={p : v for p, v in zip(new_params[0:len(loaded_params)], loaded_params)})
+            sess.run(param_assign_ops[0:len(loaded_params)], feed_dict={p : v for p, v in zip(new_params[0:len(loaded_params)], loaded_params)})
 
         self.train = train
         self.train_model = train_model
@@ -413,7 +412,8 @@ class PPO_AdvActor(object):
                 self._oppo_state = self._oppo_model.initial_state
                 self.adv_opp_states = self._model.initial_state
                 self.adv_abs_states = self._model.initial_state
-                episode_infos.append({'r': self._cum_reward, 'win': int(info['winning'])})
+                episode_infos.append({'r': self._cum_reward, 'win': int(info['winning']), 'tie': int(info['tie']),
+                                      'loss': int(info['loss']),})
                 self._cum_reward = 0
 
             # opp, abs rewards
@@ -665,12 +665,19 @@ class Adv_Learner(object):
 
         # print the winning rate and number of the games
         total_game = len(self._episode_infos)
+        win_game = sum([info['win'] for info in self._episode_infos])
+        tie_game = sum([info['tie'] for info in self._episode_infos])
+        loss_game = sum([info['loss'] for info in self._episode_infos])
         winning_rate = sum([info['win'] for info in self._episode_infos]) * 1.0 / total_game
-        tprint('Total_Game is %d, Winning_rate is %f' % (total_game, winning_rate))
+        win_count_tie = (((win_game - loss_game) * 1.0 / (total_game)) + 1) / 2.0
+        win_plus_tie = (win_game + tie_game) * 1.0 / (total_game)
+        tprint('Total_Game is %d, Winning_rate is %f, Winning_rate_tie is %f, Winning_plus_tie is %f,'
+               'win %d, tie %d, loss %d,'
+               % (total_game, winning_rate, win_count_tie,  win_plus_tie, win_game, tie_game, loss_game))
         if self._save_dir is not None:
             os.makedirs(self._save_dir, exist_ok=True)
             fid = open(self._save_dir + '/Log.txt', 'a+')
-            fid.write("%d %f\n" %(updates, winning_rate))
+            fid.write("%d %f %f %f\n" %(updates, winning_rate, win_count_tie, win_plus_tie))
             fid.close()
 
         tprint("Update: %d	Train-fps: %.1f	Rollout-fps: %.1f	"
