@@ -113,8 +113,16 @@ class SC2RawEnv(gym.Env):
                  (self._difficulty, reward))
           if reward > 0:
               info['winning'] = True
+              info['tie'] = False
+              info['loss'] = False
+          elif reward == 0:
+              info['winning'] = False
+              info['tie'] = True
+              info['loss'] = False
           else:
               info['winning'] = False
+              info['tie'] = False
+              info['loss'] = True
         return (observation, reward, done, info)
 
     def reset(self):

@@ -74,8 +74,16 @@ def data_frame(events, game, subsample=100000):
             b['step'] = c
             b = b.set_index('step')
             df = pd.concat([df, b])
-        df.index = df.index * subsample
+        elif df.shape[0] < 350 and game == 'SumoAnts':
+            import numpy as np
+            tmp = df[df.shape[0]-(350-df.shape[0]+1):].copy()
+            c = np.arange(df.shape[0], 351)
+            tmp = tmp.reset_index()
+            tmp['step'] = c
+            tmp = tmp.set_index(['step'])
+            df = pd.concat([df, tmp])
 
+        df.index = df.index * subsample
         dfs.append(df)
     data_form = pd.concat(dfs)
     data_form = data_form.sort_index()
@@ -156,9 +164,9 @@ if __name__ == "__main__":
     reverse = True
 
     # game = 'YouShallNotPassHumans'
-    game = 'KickAndDefend'
+    # game = 'KickAndDefend'
     # game = 'SumoHumans'
-    # game = 'SumoAnts'
+    game = 'SumoAnts'
 
     out_dir = args.out_dir
     log_dir = args.log_dir

@@ -48,7 +48,7 @@ flags.DEFINE_boolean("use_action_mask", True, "Use region-wise combat.")
 flags.DEFINE_string("reward_shaping_type", "v1", "type of reward shaping.")
 
 # opponent model related hyperparameters.
-flags.DEFINE_string("opp_model_path", '/home/wenbo/target-agent/checkpoint-100000', "Opponent Model Path")
+flags.DEFINE_string("opp_model_path", '/home/xkw5132/Music/rl_newloss/StarCraftII/target-agent/checkpoint-1050000-2', "Opponent Model Path")
 flags.DEFINE_boolean("use_victim_ob", False, "whether use victim obs")
 
 # loss function related hyperparameters
@@ -72,13 +72,13 @@ flags.DEFINE_enum("value", 'mlp', ['mlp', 'lstm'], "Value type")
 # learning process.
 flags.DEFINE_integer("unroll_length", 128, "Length of rollout steps.") # training batch size for mlp.
 flags.DEFINE_integer("learner_queue_size", 1024, "Size of learner's unroll queue per update.")
-flags.DEFINE_integer("max_episode", 400, "num of games per update.")
+flags.DEFINE_integer("max_episode", 2, "num of games per update.")
 flags.DEFINE_integer("game_steps_per_episode", 43200, "Maximum steps per episode.")
 flags.DEFINE_integer("batch_size", 8, "Batch size.") # batch_size * unroll_length
 flags.DEFINE_float("learning_rate", 1e-5, "Learning rate.")
 
 # save and print.
-flags.DEFINE_string("init_model_path", None, "Initial model path.")
+flags.DEFINE_string("init_model_path", '/home/xkw5132/Music/rl_newloss/StarCraftII/target-agent/checkpoint-100000', "Initial model path.")
 flags.DEFINE_string("save_dir", "/home/wenbo/adv_shape_v1/", "Dir to save models to")
 flags.DEFINE_integer("save_interval", 50000, "Model saving frequency.")
 flags.DEFINE_integer("print_interval", 1000, "Print train cost frequency.")
