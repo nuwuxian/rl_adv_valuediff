@@ -264,7 +264,7 @@ def make_adv_multi2single_env(env_name, adv_agent_path, adv_agent_norm_path, sha
     zoo_agent = make_adv_agent(env.observation_space.spaces[1], env.action_space.spaces[1], n_envs, adv_agent_path,
                                adv_ismlp=adv_ismlp, adv_obs_normpath=adv_agent_norm_path)
 
-    return Multi2SingleEnv(env, zoo_agent, agent_idx=reverse, shaping_params=shaping_params,
+    return Multi2SingleEnv(env, env_name, zoo_agent, agent_idx=reverse, shaping_params=shaping_params,
                            scheduler=scheduler, retrain_victim=True)
 
 
