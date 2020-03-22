@@ -42,7 +42,7 @@ GAME_SEED = 1234
 
 def create_env(random_seed=None):
     #  create environment.
-    env = SC2RawEnv(map_name='AbyssalReef',
+    env = SC2RawEnv(map_name='Flat64',
                     step_mul=FLAGS.step_mul,
                     agent_race='zerg',
                     bot_race='zerg',
