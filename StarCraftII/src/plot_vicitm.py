@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 import argparse
 import matplotlib.pyplot as plt
 
@@ -26,7 +27,8 @@ def plot_data(log_dir, out_dir, filename):
     fig, ax = plt.subplots(figsize=(10, 8))
     colors = ['r', 'b']
 
-    group_win, group_tie = read_events_file(log_dir+'/'+'retrain-victim')
+    # group_win, group_tie = read_events_file(log_dir+'/'+'retrain-victim')
+    group_win, group_tie = read_events_file(log_dir+'/'+'train-against-adv')
 
     min_win, mean_win, max_win = group_win.min(), group_win.mean(), group_win.max()
     min_tie, mean_tie, max_tie = group_tie.min(), group_tie.mean(), group_tie.max()
@@ -62,39 +64,45 @@ if __name__ == "__main__":
     #
     # out_dir = args.out_dir
     # log_dir = args.log_dir
-    # filename = 'retrain_wining.png'
+    # filename = 'against_adv_wining.png'
     #
     # plot_data(log_dir=log_dir, out_dir=out_dir, filename=filename)
-    #
 
-    import numpy as np
-    # # retrain vs original
-    w = np.array([0.54, 0.22, 0.00, 0.45, 0.46, 0.7])
-    print(np.min(w))
-    print(np.max(w))
-    print(np.mean(w))
-    print(np.std(w))
+    # retrain from scratch vs original
+    # w = np.array([0.01, 0.00, 0.00, 0.91, 0.00, 0.00])
+    # print(np.min(w))
+    # print(np.max(w))
+    # print(np.mean(w))
+    # print(np.std(w))
 
-    # w1 = np.array([1, 0.84, 0.51, 0.21, 0.05, 0.03, 0.00])
-    # w2 = np.array([1, 0.91, 0.56, 0.16, 0.03, 0.01, 0.00])
-    # w3 = np.array([0.5, 0.5, 0.48, 0.14, 0.04, 0.00, 0.00])
-    # w4 = np.array([1, 0.92, 0.38, 0.20, 0.02, 0.04, 0.00])
-    # w5 = np.array([0.58, 0.5, 0.46, 0.22, 0.03, 0.02, 0.00])
-    # w6 = np.array([0.99, 0.75, 0.55, 0.12, 0.03, 0.03, 0.00])
-    # a = np.vstack((w1, w2, w3, w4, w5, w6))
-    # print(np.min(a, axis=0))
-    # print(np.max(a, axis=0))
-    # print(np.mean(a, axis=0))
-    # print(np.std(a, axis=0))
-    #
-    # # ucb vs bot
-    # w1 = np.array([0.57, 0.50, 0.23, 0.20, 0.00, 0.02, 0.00])
-    # w2 = np.array([0.66, 0.48, 0.15, 0.14, 0.03, 0.02, 0.00])
-    # w3 = np.array([0.5, 0.34, 0.11, 0.20, 0.01, 0.02, 0.00])
-    # w4 = np.array([0.53, 0.39, 0.05, 0.15, 0.05, 0.03, 0.00])
-    # w5 = np.array([0.51, 0.28, 0.04, 0.22, 0.04, 0.01, 0.00])
-    # w6 = np.array([0.73, 0.48, 0.18, 0.14, 0.05, 0.06, 0.00])
-    #
+    # # retrain from scratch vs bot
+    w1 = np.array([0.79, 0.44, 0.05, 0.08, 0.01, 0.04, 0])
+    w2 = np.array([0.5, 0.49, 0.04, 0.01, 0.0, 0.0, 0.0])
+    w3 = np.array([0.55, 0.4, 0.01, 0.03, 0.0, 0.0, 0.0])
+    w4 = np.array([0.67, 0.53, 0.23, 0.08, 0.0, 0.01, 0.28])
+    w5 = np.array([0.56, 0.44, 0.07, 0.0, 0.0, 0.0, 0.0])
+    w6 = np.array([0.52, 0.5, 0.05, 0.01, 0, 0.0, 0.0])
+    # w7 = np.array([0.67, 0.51, 0.07, 0.00, 0, 0.0, 0.08])
+    a = np.vstack((w1, w2, w3, w4, w5, w6))
+    print(np.min(a, axis=0))
+    print(np.max(a, axis=0))
+    print(np.mean(a, axis=0))
+    print(np.std(a, axis=0))
+
+    # # retrain victim vs original
+    # w = np.array([0.54, 0.22, 0.00, 0.45, 0.46, 0.7])
+    # print(np.min(w))
+    # print(np.max(w))
+    # print(np.mean(w))
+    # print(np.std(w))
+
+    # # retrain victim vs bot
+    # w1 = np.array([1, 1, 0.97, 0.97, 0.98, 0.98, 1])
+    # w2 = np.array([0.99, 1, 0.97, 0.97, 0.96, 0.93, 0.98])
+    # w3 = np.array([0.98, 0.89, 0.85, 0.6, 0.55, 0.61, 0.08])
+    # w4 = np.array([1, 1, 0.96, 0.99, 0.98, 0.94, 0.95])
+    # w5 = np.array([1, 0.99, 0.96, 0.92, 0.79, 0.79, 1])
+    # w6 = np.array([1, 0.98, 0.98, 1, 0.97, 0.98, 1])
     # a = np.vstack((w1, w2, w3, w4, w5, w6))
     # print(np.min(a, axis=0))
     # print(np.max(a, axis=0))
