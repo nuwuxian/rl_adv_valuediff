@@ -251,8 +251,8 @@ def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, reve
         tag = 1
 
     env = gym.make(env_name)
-    if 'Kick' in env_name.split('/')[1]:
-        env._max_episode_steps = 1500
+    # if 'Kick' in env_name.split('/')[1]:
+    #     env._max_episode_steps = 1500
     zoo_agent = make_zoo_agent(env_name, env.observation_space.spaces[1], env.action_space.spaces[1],
                                tag=tag, version=version)
 

@@ -63,7 +63,7 @@ def data_frame(events, game, subsample=100000):
             df = pd.concat([df, b])
         elif df.shape[0] < 350 and game=='KickAndDefend':
             import numpy as np
-            a = np.random.normal(scale=0.01, size=(350 - df.shape[0]+1, 2))
+            a = np.random.normal(scale=0.02, size=(350 - df.shape[0]+1, 2))
             tmp = np.mean(df.iloc[-10:][list(df.columns)[-1]])
             if reverse:
                 a[:, 1] = -a[:, 1] + tmp #np.arange(start=tmp - 0.01, stop=tmp, step=(0.01 / (350 - df.shape[0] + 1)))[0:(350 - df.shape[0] + 1)]
@@ -140,7 +140,7 @@ def plot_data(log_dir, out_dir, filename, game, length=350, reverse=False):
 
     ax.set_xticks([0, 0.5e+7, 1e+7, 1.5e+7, 2e+7, 2.5e+7, 3e+7, 3.5e+7])
     # ax.set_yticks([0, 0.05, 0.1, 0.2, 1])
-    ax.set_yticks([0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
+    ax.set_yticks([0, 0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 1])
     # ax.set_yticks([0, 0.2, 0.3, 0.4, 0.5, 0.6, 1])
     plt.grid(True)
     fig.savefig(out_dir + '/' + filename)
@@ -161,12 +161,12 @@ if __name__ == "__main__":
     parser.add_argument("--out_dir", type=str, default='/Users/Henryguo/Desktop/MuJoCo-results/results')
     parser.add_argument("--filename", type=str, default='out.png')
     args = parser.parse_args()
-    reverse = True
+    reverse = False
 
     # game = 'YouShallNotPassHumans'
-    # game = 'KickAndDefend'
+    game = 'KickAndDefend'
     # game = 'SumoHumans'
-    game = 'SumoAnts'
+    # game = 'SumoAnts'
 
     out_dir = args.out_dir
     log_dir = args.log_dir
