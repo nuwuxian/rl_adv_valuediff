@@ -15,34 +15,34 @@ from value import MlpValue, MlpLstmValue
 from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 
 # from common import get_zoo_path
-
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
 ##################
 # Hyper-parameters
 ##################
 parser = argparse.ArgumentParser()
 # game env
-parser.add_argument("--env", type=int, default=2)
+parser.add_argument("--env", type=int, default=3)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
-parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
+parser.add_argument("--n_games", type=int, default=2) # N_GAME = 8
 # which victim agent to use
 parser.add_argument("--vic_agt_id", type=int, default=3)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='/home/xkw5132/000019906560/model.pkl')
+parser.add_argument("--adv_path", type=str, default='/home/xkw5132/kick-adv-checkpoints/000019906560/model.pkl')
 # parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/rl_newloss/MuJoCo/agent-zoo/YouShallNotPassHumans-v0_3_MLP_MLP_1_const_0_const_0_const_False/20200218_104638-0/YouShallNotPassHumans-v0.pkl')
 parser.add_argument("--adv_ismlp", type=bool, default=True)
 # adversarial agent's observation norm mean / variance path
-parser.add_argument("--adv_obs_normpath", type=str, default='/home/xkw5132/000019906560/obs_rms.pkl')
+parser.add_argument("--adv_obs_normpath", type=str, default='/home/xkw5132/kick-adv-checkpoints/000019906560/obs_rms.pkl')
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
 
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='linear')
 # number of steps / lstm length should be small
-parser.add_argument("--nsteps", type=int, default=2048)
+parser.add_argument("--nsteps", type=int, default=48)
 
 # victim loss coefficient.
 parser.add_argument("--vic_coef_init", type=int, default=1) # positive
@@ -98,8 +98,8 @@ VIC_NET = args.vic_net
 
 # training hyperparameters
 # total training iterations.
-TRAINING_ITER = 40000000
-NBATCHES = 4
+TRAINING_ITER = 500000
+NBATCHES = 2 
 NEPOCHS = 4
 LR = 8e-4
 LR_SCHEDULE = args.lr_sch

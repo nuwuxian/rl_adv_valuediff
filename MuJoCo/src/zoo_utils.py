@@ -423,13 +423,14 @@ class LSTMPolicy(Policy):
         if mask is not None:
             mask = np.array(mask)[:, None]
         if self.sess==None:
-            action, value, state, neglogp = tf.get_default_session().run([self.sampled_action, self.value_flat[:, 0], self.state_out, self.neglogp],
+            action, value, state, neglogp = tf.get_default_session().run([self.sampled_action, self.value_flat, self.state_out, self.neglogp],
                                                                          {self.obs_ph: obs[:, None, :], self.state_in_ph: list(state), self.dones_ph: mask,
                                                                           self.stochastic_ph: stochastic})
         else:
-            action, value, state, neglogp = self.sess.run([self.sampled_action, self.value_flat[:, 0], self.state_out, self.neglogp],
+            action, value, state, neglogp = self.sess.run([self.sampled_action, self.value_flat, self.state_out, self.neglogp],
                                                           {self.obs_ph: obs[:, None, :], self.state_in_ph: list(state), self.dones_ph: mask,
                                                            self.stochastic_ph: stochastic})
+        value = value[:, 0]
         state_np = []
         for state_tmp in state:
             for state_tmp_1 in state_tmp:
@@ -451,13 +452,13 @@ class LSTMPolicy(Policy):
         if mask is not None:
             mask = np.array(mask)[:, None]
         if self.sess==None:
-            return tf.get_default_session().run(self.value_flat[:,0], {self.obs_ph: obs[:, None, :],
+            return tf.get_default_session().run(self.value_flat, {self.obs_ph: obs[:, None, :],
                                                                        self.state_in_ph: list(state),
-                                                                       self.dones_ph: mask})
+                                                                       self.dones_ph: mask})[:,0]
         else:
-            return self.sess.run(self.value_flat[:,0], {self.obs_ph: obs[:, None, :],
+            return self.sess.run(self.value_flat, {self.obs_ph: obs[:, None, :],
                                                         self.state_in_ph: list(state),
-                                                        self.dones_ph: mask})
+                                                        self.dones_ph: mask})[:,0]
 
 
 class Value(Policy):

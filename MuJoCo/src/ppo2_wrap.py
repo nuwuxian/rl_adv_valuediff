@@ -713,7 +713,7 @@ class MyPPO2(ActorCriticRLModel):
                                                                  update=timestep, writer=writer,states=mb_states,
                                                                  opp_states=opp_mb_states, abs_states=abs_mb_states))
 
-                    self.num_timesteps += (self.n_envs * self.noptepochs) // envs_per_batch * update_fac
+                    self.num_timesteps += (self.n_envs * self.noptepochs * self.n_steps) // envs_per_batch * update_fac
 
                 loss_vals = np.mean(mb_loss_vals, axis=0)
                 t_now = time.time()
