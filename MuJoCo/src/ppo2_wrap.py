@@ -713,6 +713,19 @@ class MyPPO2(ActorCriticRLModel):
                                                                  update=timestep, writer=writer,states=mb_states,
                                                                  opp_states=opp_mb_states, abs_states=abs_mb_states))
 
+
+                    # self.n_envs * self.noptepochs * self.n_steps 
+                    # envs_per_batch: batch_size // self.n_steps
+                    # batch_size: self.n_batch // self.nminibatches
+
+
+                    # inter-result1: self.n_envs * self.noptepochs * self.n_steps * self.n_steps // batch_size
+
+                    # inter-result2: self.n_envs * （self.noptepochs） * self.n_steps * （self.n_steps） * （self.nminibatches） // (self.n_batch)
+                    
+                    # update_fac: self.n_batch // self.nminibatches // self.noptepochs // self.n_steps + 1
+
+
                     self.num_timesteps += (self.n_envs * self.noptepochs * self.n_steps) // envs_per_batch * update_fac
 
                 loss_vals = np.mean(mb_loss_vals, axis=0)
