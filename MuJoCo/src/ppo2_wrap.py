@@ -725,9 +725,9 @@ class MyPPO2(ActorCriticRLModel):
                     
                     # update_fac: self.n_batch // self.nminibatches // self.noptepochs // self.n_steps + 1
 
-
-                    self.num_timesteps += (self.n_envs * self.noptepochs * self.n_steps) // envs_per_batch * update_fac
-
+                    # self.num_timesteps += (self.n_envs * self.noptepochs * self.n_steps) // envs_per_batch * update_fac
+                    self.num_timesteps += self.n_envs * self.n_steps
+			
                 loss_vals = np.mean(mb_loss_vals, axis=0)
                 t_now = time.time()
                 fps = int(self.n_batch / (t_now - t_start))
