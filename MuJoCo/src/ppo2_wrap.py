@@ -503,11 +503,11 @@ class MyPPO2(ActorCriticRLModel):
                       }
 
             if states is not None:
-                masks = masks.reshape((self.n_envs // self.nminibatches, self.n_steps, 1))
+                masks_tmp = masks.reshape((self.n_envs // self.nminibatches, self.n_steps, 1))
                 masks_in = np.zeros((self.n_envs // self.nminibatches, 1))
-                for i in range(masks.shape[0]):
-                    tmp = masks[i,]
-                    if np.where(masks[0]==True)[0].shape[0]==0:
+                for i in range(masks_tmp.shape[0]):
+                    tmp = masks_tmp[i,]
+                    if np.where(tmp[:,0]==True)[0].shape[0]==0:
                         masks_in[i,0]=False
                     else:
                         masks_in[i,0]=True

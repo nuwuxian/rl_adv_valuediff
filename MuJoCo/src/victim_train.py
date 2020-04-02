@@ -15,7 +15,7 @@ from value import MlpValue, MlpLstmValue
 from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 
 # from common import get_zoo_path
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 
 ##################
 # Hyper-parameters
@@ -26,23 +26,23 @@ parser.add_argument("--env", type=int, default=3)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
-parser.add_argument("--n_games", type=int, default=2) # N_GAME = 8
+parser.add_argument("--n_games", type=int, default=4) # N_GAME = 8
 # which victim agent to use
-parser.add_argument("--vic_agt_id", type=int, default=3)
+parser.add_argument("--vic_agt_id", type=int, default=1)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='/home/xkw5132/kick-adv-checkpoints/000019906560/model.pkl')
+parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/Kick-adv/000035094528/model.pkl')
 # parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/rl_newloss/MuJoCo/agent-zoo/YouShallNotPassHumans-v0_3_MLP_MLP_1_const_0_const_0_const_False/20200218_104638-0/YouShallNotPassHumans-v0.pkl')
 parser.add_argument("--adv_ismlp", type=bool, default=True)
 # adversarial agent's observation norm mean / variance path
-parser.add_argument("--adv_obs_normpath", type=str, default='/home/xkw5132/kick-adv-checkpoints/000019906560/obs_rms.pkl')
+parser.add_argument("--adv_obs_normpath", type=str, default='/home/wzg13/Desktop/Kick-adv/000035094528/obs_rms.pkl')
 # victim agent network
-parser.add_argument("--vic_net", type=str, default='MLP')
+parser.add_argument("--vic_net", type=str, default='LSTM')
 
 # learning rate scheduler
-parser.add_argument("--lr_sch", type=str, default='linear')
+parser.add_argument("--lr_sch", type=str, default='const')
 # number of steps / lstm length should be small
-parser.add_argument("--nsteps", type=int, default=48)
+parser.add_argument("--nsteps", type=int, default=128)
 
 # victim loss coefficient.
 parser.add_argument("--vic_coef_init", type=int, default=1) # positive
@@ -53,7 +53,7 @@ parser.add_argument("--adv_coef_init", type=int, default=-1) # negative
 # adv loss schedule
 parser.add_argument("--adv_coef_sch", type=str, default='const')
 # diff loss coefficient.
-parser.add_argument("--diff_coef_init", type=int, default=-3) # negative
+parser.add_argument("--diff_coef_init", type=int, default=0) # negative
 # diff loss schedule
 parser.add_argument("--diff_coef_sch", type=str, default='const')
 
@@ -122,9 +122,14 @@ LOAD_VICTIM_NORM = args.load_victim_norm
 
 # callback hyperparameters
 CALLBACK_KEY = 'update'
-CALLBACK_MUL = 16384
-LOG_INTERVAL = 2048
+CALLBACK_MUL = 1024
+LOG_INTERVAL = 1024
 CHECKPOINT_INTERVAL = 131072
+
+#CALLBACK_KEY = 'update'
+#CALLBACK_MUL = 16384
+#LOG_INTERVAL = 2048
+#CHECKPOINT_INTERVAL = 131072
 
 # TODO: enable loading the victim model.
 PRETRAIN_TEMPLETE = "../agent-zoo/%s-pretrained-expert-1000-1000-1e-03.pkl"
