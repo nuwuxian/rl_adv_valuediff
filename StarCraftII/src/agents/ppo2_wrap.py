@@ -662,7 +662,7 @@ class Adv_Learner(object):
             (time.time() - self._data_timesteps[0])
         var = explained_variance(values, returns)
         avg_reward = safemean([info['r'] for info in self._episode_infos])
-
+        avg_return = safemean(returns)
         # print the winning rate and number of the games
         total_game = len(self._episode_infos)
         win_game = sum([info['win'] for info in self._episode_infos])
@@ -677,7 +677,7 @@ class Adv_Learner(object):
         if self._save_dir is not None:
             os.makedirs(self._save_dir, exist_ok=True)
             fid = open(self._save_dir + '/Log.txt', 'a+')
-            fid.write("%d %f %f %f\n" %(updates, winning_rate, win_count_tie, win_plus_tie))
+            fid.write("%d %f %f %f %f %f\n" %(updates, winning_rate, win_count_tie, win_plus_tie, avg_reward, avg_return))
             fid.close()
 
         tprint("Update: %d	Train-fps: %.1f	Rollout-fps: %.1f	"
