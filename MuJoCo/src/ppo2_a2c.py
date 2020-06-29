@@ -23,7 +23,7 @@ from value import MlpLstmValue, MlpValue
 import pdb
 
 
-class PPO-A2C(ActorCriticRLModel):
+class PPO_A2C(ActorCriticRLModel):
     """ Learn policy with PPO """
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.2,
                  coef_opp_init=1, coef_opp_schedule='const', coef_adv_init=1, coef_adv_schedule='const',
@@ -62,7 +62,7 @@ class PPO-A2C(ActorCriticRLModel):
         :param: retrain_victim:retrain victim agents or not.
         """
 
-        super(MyPPO2, self).__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
+        super(PPO_A2C, self).__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
                                       _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs)
         self.coef_opp_init = coef_opp_init
         self.coef_opp_schedule = coef_opp_schedule
@@ -328,7 +328,7 @@ class PPO-A2C(ActorCriticRLModel):
                     self.opp_pg_loss = tf.reduce_mean(self.opp_advs_ph * self.coef_opp_ph * neglogpac)
                     self.abs_pg_loss = tf.reduce_mean(self.abs_advs_ph * self.coef_abs_ph * neglogpac)
 
-                    self.pg_loss = self.adv_pg_losses + self.opp_pg_loss + self.abs_pg_loss
+                    self.pg_loss = self.adv_pg_loss + self.opp_pg_loss + self.abs_pg_loss
 
                     self.approxkl = .5 * tf.reduce_mean(tf.square(neglogpac - self.old_neglog_pac_ph))
                     self.clipfrac = tf.reduce_mean(tf.cast(tf.greater(tf.abs(ratio - 1.0),
