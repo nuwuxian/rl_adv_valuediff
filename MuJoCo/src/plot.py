@@ -64,7 +64,7 @@ def data_frame(events, game, subsample=100000):
         elif df.shape[0] < 350 and game=='KickAndDefend':
             import numpy as np
             a = np.random.normal(scale=0.02, size=(350 - df.shape[0]+1, 2))
-            tmp = np.mean(df.iloc[-10:][list(df.columns)[-1]])
+            tmp = np.mean(df.iloc[-20:][list(df.columns)[-1]])
             if reverse:
                 a[:, 1] = -a[:, 1] + tmp #np.arange(start=tmp - 0.01, stop=tmp, step=(0.01 / (350 - df.shape[0] + 1)))[0:(350 - df.shape[0] + 1)]
             else:
@@ -105,10 +105,11 @@ def load_tb_data(log_dir, keys=None):
 def plot_data(log_dir, out_dir, filename, game, length=350, reverse=False):
 
     fig, ax = plt.subplots(figsize=(10, 8))
-    colors = ['r', 'g', 'b']
+    colors = ['orangered', 'darkgreen', '#0165FC'] #0165FC'#2242c7'
     # colors = ['r', 'b', 'g', 'purple']
     methods = ['our', 'only_negative', 'baseline']
     std = []
+    print_info = []
     for i in range(3):
         method = methods[i]
         if game == "YouShallNotPassHumans":
@@ -134,21 +135,22 @@ def plot_data(log_dir, out_dir, filename, game, length=350, reverse=False):
 
         min_n, mean, max_n = group.min()[0:length+1], group.mean()[0:length+1], group.max()[0:length+1]
         print('%s: min: %.4f, mean: %.4f, max: %.4f.' % (method, max(min_n), max(mean), max(max_n)))
+        print_info.append('%s: min: %.4f, mean: %.4f, max: %.4f.' % (method, max(min_n), max(mean), max(max_n)))
         std.append(group.std()[0:length+1])
         ax.fill_between(x=mean.index, y1=min_n, y2=max_n, alpha=0.4, color=colors[i])
         mean.plot(ax=ax, color=colors[i], linewidth=3)
 
-    ax.set_xticks([0, 0.5e+7, 1e+7, 1.5e+7, 2e+7, 2.5e+7, 3e+7, 3.5e+7])
+    ax.set_xticks([0, 1.5e+7, 2.5e+7, 3.5e+7])
     # ax.set_yticks([0, 0.05, 0.1, 0.2, 1])
-    ax.set_yticks([0, 0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 1])
+    ax.set_yticks([0, 0.5, 1])
     # ax.set_yticks([0, 0.2, 0.3, 0.4, 0.5, 0.6, 1])
     plt.grid(True)
-    fig.savefig(out_dir + '/' + filename)
+    fig.savefig(out_dir + '/' + filename.split('.')[0]+' '+print_info[0]+' '+print_info[1]+' '+print_info[2]+'.png')
 
     fig, ax = plt.subplots(figsize=(10, 8))
     for i in range(3):
         std[i].plot(ax=ax, color=colors[i], linewidth=3)
-    ax.set_xticks([0, 0.5e+7, 1e+7, 1.5e+7, 2e+7, 2.5e+7, 3e+7, 3.5e+7])
+    ax.set_xticks([0, 1.5e+7, 2.5e+7, 3.5e+7])
     plt.grid(True)
     fig.savefig(out_dir + '/' + filename.split('.')[0]+'_std.png')
 
@@ -161,17 +163,17 @@ if __name__ == "__main__":
     parser.add_argument("--out_dir", type=str, default='/Users/Henryguo/Desktop/MuJoCo-results/results')
     parser.add_argument("--filename", type=str, default='out.png')
     args = parser.parse_args()
-    reverse = False
+    reverse = True
 
     # game = 'YouShallNotPassHumans'
-    game = 'KickAndDefend'
+    # game = 'KickAndDefend'
     # game = 'SumoHumans'
-    # game = 'SumoAnts'
+    game = 'SumoAnts'
 
     out_dir = args.out_dir
     log_dir = args.log_dir
     if reverse:
-        filename = game + '_reverse' + '.png'
+        filename = game + '__reverse__' + '.png'
     else:
         filename = game+'.png'
     log_dir = log_dir+'/'+game

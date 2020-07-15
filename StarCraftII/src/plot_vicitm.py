@@ -25,29 +25,29 @@ def read_events_file(events_filename):
 def plot_data(log_dir, out_dir, filename):
 
     fig, ax = plt.subplots(figsize=(10, 8))
-    colors = ['r', 'b']
+    # colors = ['r', 'b']
+    colors = ['orangered', '#0165FC']
 
-    # group_win, group_tie = read_events_file(log_dir+'/'+'retrain-victim')
-    group_win, group_tie = read_events_file(log_dir+'/'+'train-against-adv')
+    group_win, group_tie = read_events_file(log_dir+'/'+'retrain-victim')
+    # group_win, group_tie = read_events_file(log_dir+'/'+'train-against-adv')
 
     min_win, mean_win, max_win = group_win.min(), group_win.mean(), group_win.max()
     min_tie, mean_tie, max_tie = group_tie.min(), group_tie.mean(), group_tie.max()
 
-    ax.fill_between(x=mean_win.index, y1=min_win, y2=max_win, alpha=0.4, color=colors[0])
-    mean_win.plot(ax=ax, color=colors[0], linewidth=3)
+    # ax.fill_between(x=mean_win.index, y1=min_win, y2=max_win, alpha=0.4, color=colors[0])
+    # mean_win.plot(ax=ax, color=colors[0], linewidth=3)
 
-    ax.fill_between(x=mean_tie.index, y1=min_tie, y2=max_tie, alpha=0.4, color=colors[1])
-    mean_tie.plot(ax=ax, color=colors[1], linewidth=3)
+    ax.fill_between(x=mean_tie.index, y1=min_tie, y2=max_tie, alpha=0.4, color=colors[0])
+    mean_tie.plot(ax=ax, color=colors[0], linewidth=3)
 
     ax.set_xticks([0, 40e+4, 80e+4, 120e+4, 160e+4])
-    ax.set_yticks([0, 0.05, 0.1, 0.2, 0.3, 0.4, 0.7, 0.8, 0.9, 0.95, 1])
+    ax.set_yticks([0, 0.5, 1])
     plt.grid(True)
     fig.savefig(out_dir + '/' + filename)
 
-
     fig, ax = plt.subplots(figsize=(10, 8))
-    group_win.std().plot(ax=ax, color=colors[0], linewidth=3)
-    group_tie.std().plot(ax=ax, color=colors[1], linewidth=3)
+    # group_win.std().plot(ax=ax, color=colors[0], linewidth=3)
+    group_tie.std().plot(ax=ax, color=colors[0], linewidth=3)
 
     ax.set_xticks([0, 40e+4, 80e+4, 120e+4, 160e+4])
     plt.grid(True)
@@ -56,17 +56,18 @@ def plot_data(log_dir, out_dir, filename):
 
 # main function
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--log_dir', type=str, default='/Users/Henryguo/Desktop/StarCraft-results/agents')
-    # parser.add_argument("--out_dir", type=str, default='/Users/Henryguo/Desktop/StarCraft-results/results')
-    # parser.add_argument("--filename", type=str, default='results.png')
-    # args = parser.parse_args()
-    #
-    # out_dir = args.out_dir
-    # log_dir = args.log_dir
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--log_dir', type=str, default='/Users/Henryguo/Desktop/StarCraft-results/agents')
+    parser.add_argument("--out_dir", type=str, default='/Users/Henryguo/Desktop/StarCraft-results/results')
+    parser.add_argument("--filename", type=str, default='results.png')
+    args = parser.parse_args()
+
+    out_dir = args.out_dir
+    log_dir = args.log_dir
     # filename = 'against_adv_wining.png'
-    #
-    # plot_data(log_dir=log_dir, out_dir=out_dir, filename=filename)
+    filename = 'retrain_wining_tie.png'
+
+    plot_data(log_dir=log_dir, out_dir=out_dir, filename=filename)
 
     # retrain from scratch vs original
     # w = np.array([0.01, 0.00, 0.00, 0.91, 0.00, 0.00])
@@ -76,18 +77,18 @@ if __name__ == "__main__":
     # print(np.std(w))
 
     # # retrain from scratch vs bot
-    w1 = np.array([0.79, 0.44, 0.05, 0.08, 0.01, 0.04, 0])
-    w2 = np.array([0.5, 0.49, 0.04, 0.01, 0.0, 0.0, 0.0])
-    w3 = np.array([0.55, 0.4, 0.01, 0.03, 0.0, 0.0, 0.0])
-    w4 = np.array([0.67, 0.53, 0.23, 0.08, 0.0, 0.01, 0.28])
-    w5 = np.array([0.56, 0.44, 0.07, 0.0, 0.0, 0.0, 0.0])
-    w6 = np.array([0.52, 0.5, 0.05, 0.01, 0, 0.0, 0.0])
-    # w7 = np.array([0.67, 0.51, 0.07, 0.00, 0, 0.0, 0.08])
-    a = np.vstack((w1, w2, w3, w4, w5, w6))
-    print(np.min(a, axis=0))
-    print(np.max(a, axis=0))
-    print(np.mean(a, axis=0))
-    print(np.std(a, axis=0))
+    # w1 = np.array([0.79, 0.44, 0.05, 0.08, 0.01, 0.04, 0])
+    # w2 = np.array([0.5, 0.49, 0.04, 0.01, 0.0, 0.0, 0.0])
+    # w3 = np.array([0.55, 0.4, 0.01, 0.03, 0.0, 0.0, 0.0])
+    # w4 = np.array([0.67, 0.53, 0.23, 0.08, 0.0, 0.01, 0.28])
+    # w5 = np.array([0.56, 0.44, 0.07, 0.0, 0.0, 0.0, 0.0])
+    # w6 = np.array([0.52, 0.5, 0.05, 0.01, 0, 0.0, 0.0])
+    # # w7 = np.array([0.67, 0.51, 0.07, 0.00, 0, 0.0, 0.08])
+    # a = np.vstack((w1, w2, w3, w4, w5, w6))
+    # print(np.min(a, axis=0))
+    # print(np.max(a, axis=0))
+    # print(np.mean(a, axis=0))
+    # print(np.std(a, axis=0))
 
     # # retrain victim vs original
     # w = np.array([0.54, 0.22, 0.00, 0.45, 0.46, 0.7])
