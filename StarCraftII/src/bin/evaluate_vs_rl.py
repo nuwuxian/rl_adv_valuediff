@@ -26,12 +26,13 @@ from agents.keyboard_agent import KeyboardAgent
 
 FLAGS = flags.FLAGS
 # total time steps.
-flags.DEFINE_integer("num_episodes", 4, "Number of episodes to evaluate.")
+flags.DEFINE_integer("num_episodes", 5, "Number of episodes to evaluate.")
 flags.DEFINE_enum("difficulty", '1',
                   ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'],
                   "Bot's strength.")
-flags.DEFINE_string("model_path", "../../adv_agent/checkpoint-50000", "Filepath to load initial model.")
-flags.DEFINE_string("victim_path", "../../target-agent/checkpoint-100000", "victim_path")
+flags.DEFINE_string("model_path", "../StarCraft-results/agents/our/group1/checkpoint-550000", "Filepath to load initial model.")
+#flags.DEFINE_string("model_path", "../StarCraft-results/agents/baseline/group1/checkpoint-350000", "Filepath to load initial model.")
+flags.DEFINE_string("victim_path", "../target-agent/checkpoint-100000", "victim_path")
 flags.DEFINE_boolean("disable_fog", False, "Disable fog-of-war.")
 
 flags.DEFINE_enum("agent", 'ppo', ['ppo', 'dqn', 'random', 'keyboard'],
@@ -40,7 +41,7 @@ flags.DEFINE_enum("policy", 'mlp', ['mlp', 'lstm'], "Job type.")
 flags.DEFINE_enum("value", 'mlp', ['mlp', 'lstm'], "Value type")
 flags.DEFINE_string("game_version", '4.6', "Game core version.")
 flags.DEFINE_integer("step_mul", 32, "Game steps per agent step.")
-flags.DEFINE_integer("game_steps_per_episode", 43200, "Maximum steps per episode.")
+flags.DEFINE_integer("game_steps_per_episode", 103200, "Maximum steps per episode.")
 flags.DEFINE_boolean("use_all_combat_actions", False, "Use all combat actions.")
 flags.DEFINE_boolean("use_region_features", False, "Use region features")
 flags.DEFINE_boolean("use_action_mask", True, "Use action mask or not.")
@@ -146,9 +147,7 @@ def evaluate(game_seed):
                       loss_games += 1
                   else:
                       tie_games += 1
-        print("Evaluated %d/%d Episodes Avg Return %f Avg Winning Rate %f Win %d Lose %d tie %d" %
-              (i + 1, FLAGS.num_episodes, cum_return / (i + 1),
-               ((cum_return / (i + 1)) + 1) / 2.0, win_games, loss_games, tie_games))
+              print("Evaluated %d/%d Episodes Avg Return %f Avg Winning Rate %f Win %d Lose %d tie %d" % (i + 1, FLAGS.num_episodes, cum_return / (i + 1), ((cum_return / (i + 1)) + 1) / 2.0, win_games, loss_games, tie_games))
         return (((cum_return / (FLAGS.num_episodes)) + 1) / 2.0, cum_return, win_games, loss_games, tie_games)
     except KeyboardInterrupt: pass
     finally: env.close()
@@ -159,7 +158,7 @@ def main(argv):
     winning_info = evaluate(GAME_SEED)
     victim = FLAGS.victim_path.split('/')[-1]
     model = FLAGS.model_path.split('/')[-1]
-    np.save(os.path.join(SAVE_PATH, victim+'_'+model+'_'+FLAGS.difficulty), winning_info)
+    #np.save(os.path.join(SAVE_PATH, victim+'_'+model+'_'+FLAGS.difficulty), winning_info)
 
 
 if __name__ == '__main__':
