@@ -4,6 +4,8 @@ import gym
 from gym.spaces import Box
 from gym import Wrapper, RewardWrapper
 
+import random
+
 from stable_baselines.common.vec_env import VecEnvWrapper
 from common import trigger_map
 from agent import make_zoo_agent, make_adv_agent
@@ -19,7 +21,7 @@ def func(x):
   else:
     return x
 
-
+# norm-agent
 class Monitor(VecEnvWrapper):
     def __init__(self, venv, agent_idx):
         """ Got game results.
@@ -70,10 +72,88 @@ class Monitor(VecEnvWrapper):
         self.outcomes = []
 
 
+class Multi_Monitor(VecEnvWrapper):
+    def __init__(self, venv, agent_idx):
+        """ Got game results.
+        :param: venv: environment.
+        :param: agent_idx: the index of victim agent.
+        """
+        VecEnvWrapper.__init__(self, venv)
+        self.outcomes = []
+        # adv_outcomes
+        self.adv_outcomes = []
+
+        self.num_games = 0
+        self.agent_idx = agent_idx
+
+    def reset(self):
+        return self.venv.reset()
+
+    def step_wait(self):
+        """ get the needed information of adversarial agent.
+        :return: obs: observation of the next step. n_environment * observation dimensionality
+        :return: rew: reward of the next step.
+        :return: dones: flag of whether the game finished or not.
+        :return: infos: winning information.
+        """
+        obs, rew, dones, infos = self.venv.step_wait()
+        for done, info in zip(dones, infos):
+            if done:
+                if 'winner' in info:
+                    self.outcomes.append(1 - self.agent_idx)
+                    if 'adv_agent' in info:
+                        self.adv_outcomes.append(1 - self.agent_idx)
+                elif 'loser' in info:
+                    self.outcomes.append(self.agent_idx)
+                    if 'adv_agent' in info:
+                        self.adv_outcomes.append(self.agent_idx)
+                else:
+                    self.outcomes.append(None)
+                    if 'adv_agent' in info:
+                        self.adv_outcomes.append(None)
+                self.num_games += 1
+
+        return obs, rew, dones, infos
+
+    def log_callback(self, logger):
+        """ compute winning rate.
+        :param: logger: record of log.
+        """
+        c = Counter()
+        c.update(self.outcomes)
+        num_games = self.num_games
+
+        adv_c = Counter()
+        adv_c.update(self.adv_outcomes)
+        adv_num_games = adv_c.get(0, 0) + adv_c.get(1, 0) + adv_c.get(None, 0)
+        norm_num_games = num_games - adv_num_games
+
+        if num_games > 0:
+            logger.logkv("game_win0", c.get(0, 0) / num_games)  # agent 0 winning rate.
+            logger.logkv("game_win1", c.get(1, 0) / num_games)  # agent 1 winning rate.
+            logger.logkv("game_tie", c.get(None, 0) / num_games)  # tie rate.
+        # play with adv-agent
+        if adv_num_games > 0:
+            logger.logkv("game_adv_win0", adv_c.get(0, 0) / adv_num_games)
+            logger.logkv("game_adv_win1", adv_c.get(1, 0) / adv_num_games)
+            logger.logkv("game_adv_tie", adv_c.get(None, 0) / adv_num_games)
+        # play with norm-agent
+        if norm_num_games > 0:
+            logger.logkv("game_norm_win0", (c.get(0, 0) - adv_c.get(0, 0)) / norm_num_games)
+            logger.logkv("game_norm_win1", (c.get(1, 0) - adv_c.get(1, 0)) / norm_num_games)
+            logger.logkv("game_norm_tie", (c.get(None, 0) - adv_c.get(None, 0)) / norm_num_games)
+
+        logger.logkv("game_total", num_games)
+        logger.logkv("adv_game_total", adv_num_games)
+        self.num_games = 0
+        self.outcomes = []
+        self.adv_outcomes = []
+
 class Multi2SingleEnv(Wrapper):
 
     def __init__(self, env, env_name, agent, agent_idx, shaping_params, scheduler, norm=True,
-                 retrain_victim=False, clip_obs=10., clip_reward=10., gamma=0.99, epsilon=1e-8):
+                 retrain_victim=False, clip_obs=10., clip_reward=10., gamma=0.99, epsilon=1e-8,
+                 mix_agent=False, mix_ratio=0.5, _agent=None):
 
         """ from multi-agent environment to single-agent environment.
         :param: env: two-agent environment.
@@ -105,6 +185,13 @@ class Multi2SingleEnv(Wrapper):
         self.ret_abs_rms = RunningMeanStd(shape=())
 
         self.done = False
+        self.mix_agent = mix_agent
+        self.mix_ratio = mix_ratio
+
+        self._agent = _agent
+        # determine which policy norm|adv
+        self.is_advagent = True
+
         # time step count
         self.cnt = 0
         self.agent_idx = agent_idx
@@ -147,6 +234,10 @@ class Multi2SingleEnv(Wrapper):
                 self_action = self.agent.act(observation=self.oppo_ob[None, :], reward=self.reward, done=self.done).flatten()
             else:
                 self_action = self.agent.act(observation=self.ob[None,:], reward=self.reward, done=self.done).flatten()
+            # mix agent
+            if self.mix_agent and not self.is_advagent:
+                self_action = self._agent.act(observation=self.ob, reward=self.reward, done=self.done)
+
         else:
             self_action = self.agent.act(observation=self.ob, reward=self.reward, done=self.done)
         # note: current observation
@@ -205,6 +296,8 @@ class Multi2SingleEnv(Wrapper):
         if done:
           if 'winner' in self.info: # victim win.
             info['loser'] = True
+          if self.is_advagent and self.retrain_victim:
+            info['adv_agent'] = True
         return ob, reward, done, info
 
     def _normalize_(self, ret, ret_abs, reward, abs_reward):
@@ -235,6 +328,16 @@ class Multi2SingleEnv(Wrapper):
         # reset the agent
         # reset the h and c
         self.agent.reset()
+        if self._agent != None:
+            self._agent.reset()
+
+        ## sampling from the mix-ratio
+        ## mix-ratio adv_agent:norm_agent
+        if self.mix_ratio == 0.5:
+            self.is_advagent = not self.is_advagent
+        else:
+            self.is_advagent = (random.uniform(0, 1) < self.mix_ratio)
+
         if self.agent_idx == 1:
             ob, self.ob = self.env.reset()
         else:
@@ -266,6 +369,22 @@ def make_adv_multi2single_env(env_name, adv_agent_path, adv_agent_norm_path, sha
 
     return Multi2SingleEnv(env, env_name, zoo_agent, agent_idx=reverse, shaping_params=shaping_params,
                            scheduler=scheduler, retrain_victim=True)
+
+# make combine agents
+def make_mixadv_multi2single_env(env_name, version, adv_agent_path, adv_agent_norm_path, shaping_params, scheduler, adv_ismlp, n_envs=1, reverse=True, ratio=0.5):
+    env = gym.make(env_name)
+    if 'You' in env_name.split('/')[1]:
+        tag = 1
+    else:
+        tag = 2
+    opp_agent = make_zoo_agent(env_name, env.observation_space.spaces[1], env.action_space.spaces[1],
+                               tag=tag, version=version)
+    adv_agent = make_adv_agent(env.observation_space.spaces[1], env.action_space.spaces[1], n_envs, adv_agent_path,
+                               adv_ismlp=adv_ismlp, adv_obs_normpath=adv_agent_norm_path)
+
+    return Multi2SingleEnv(env, env_name, adv_agent, agent_idx=reverse, shaping_params=shaping_params,
+                           scheduler=scheduler, retrain_victim=True, mix_agent=True,
+                           mix_ratio=ratio, _agent=opp_agent)
 
 
 from scheduling import ConditionalAnnealer, ConstantAnnealer, LinearAnnealer

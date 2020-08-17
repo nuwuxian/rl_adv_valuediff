@@ -24,7 +24,7 @@ parser.add_argument("--env", type=int, default=3)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
-parser.add_argument("--n_games", type=int, default=2) # N_GAME = 8
+parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 # which victim agent to use
 parser.add_argument("--vic_agt_id", type=int, default=1)
 
@@ -191,7 +191,8 @@ if __name__=="__main__":
 
         # adversarial agent reward sharping.
         rew_shape_venv = apply_reward_wrapper(single_env=venv, scheduler=scheduler,
-                                              agent_idx=0, shaping_params=REW_SHAPE_PARAMS)
+                                              agent_idx=0, shaping_params=REW_SHAPE_PARAMS,
+                                              total_step=TRAINING_ITER)
 
         # normalize adversarial agent's reward and observation.
         venv = VecNormalize(rew_shape_venv)

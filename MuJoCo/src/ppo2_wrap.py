@@ -357,7 +357,13 @@ class MyPPO2(ActorCriticRLModel):
                     tf.summary.scalar('clip_factor', self.clipfrac)
                     tf.summary.scalar('loss', loss)
                     if self.retrain_vicitim and not self.use_baseline_policy:
-                        params = tf_util.get_trainable_vars("victim_policy")
+                        if self.env_name == 'multicomp/YouShallNotPassHumans-v0':
+                            params = tf_util.get_trainable_vars("victim_policy")
+                        else:
+                            params = tf_util.get_trainable_vars("victim_policy/lstmp") + \
+                                     tf_util.get_trainable_vars("victim_policy/fully_connected_2") + \
+                                     tf_util.get_trainable_vars("victim_policy/fully_connected_3") + \
+                                     tf_util.get_trainable_vars("victim_policy/logstd")
                     else:
                         params = tf_util.get_trainable_vars("model")
                     if self.full_tensorboard_log:

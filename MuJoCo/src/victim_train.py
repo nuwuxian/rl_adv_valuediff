@@ -8,7 +8,7 @@ from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines.common.vec_env.vec_normalize import VecNormalize
 from scheduling import ConstantAnnealer, Scheduler
 from shaping_wrappers import apply_reward_wrapper
-from environment import make_zoo_multi2single_env, Monitor, make_adv_multi2single_env
+from environment import Monitor, make_adv_multi2single_env, Multi_Monitor, make_mixadv_multi2single_env
 from logger import setup_logger
 from ppo2_wrap import MyPPO2
 from value import MlpValue, MlpLstmValue
@@ -22,27 +22,26 @@ os.environ['CUDA_VISIBLE_DEVICES'] = ' '
 ##################
 parser = argparse.ArgumentParser()
 # game env
-parser.add_argument("--env", type=int, default=3)
+parser.add_argument("--env", type=int, default=2)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
-parser.add_argument("--n_games", type=int, default=4) # N_GAME = 8
+parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 # which victim agent to use
 parser.add_argument("--vic_agt_id", type=int, default=1)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/Kick-adv/000035094528/model.pkl')
-# parser.add_argument("--adv_path", type=str, default='/home/wzg13/Desktop/rl_newloss/MuJoCo/agent-zoo/YouShallNotPassHumans-v0_3_MLP_MLP_1_const_0_const_0_const_False/20200218_104638-0/YouShallNotPassHumans-v0.pkl')
+parser.add_argument("--adv_path", type=str, default='/home/xkw5132/Desktop/ccs_paper/adv_agent-zoo/you/000016072704/model.pkl')
 parser.add_argument("--adv_ismlp", type=bool, default=True)
 # adversarial agent's observation norm mean / variance path
-parser.add_argument("--adv_obs_normpath", type=str, default='/home/wzg13/Desktop/Kick-adv/000035094528/obs_rms.pkl')
+parser.add_argument("--adv_obs_normpath", type=str, default='/home/xkw5132/Desktop/ccs_paper/adv_agent-zoo/you/000016072704/obs_rms.pkl')
 # victim agent network
-parser.add_argument("--vic_net", type=str, default='LSTM')
+parser.add_argument("--vic_net", type=str, default='MLP')
 
 # learning rate scheduler
 parser.add_argument("--lr_sch", type=str, default='const')
 # number of steps / lstm length should be small
-parser.add_argument("--nsteps", type=int, default=128)
+parser.add_argument("--nsteps", type=int, default=2048)
 
 # victim loss coefficient.
 parser.add_argument("--vic_coef_init", type=int, default=1) # positive
@@ -62,6 +61,9 @@ parser.add_argument("--use_baseline_policy", type=bool, default=False)
 
 # whether use zoo_utils's policy normalization when retrain victim
 parser.add_argument("--load_victim_norm", type=bool, default=True)
+# percentage of playing with adv-agent during mix-retraining
+parser.add_argument("--mix_ratio", type=float, default=0.8)
+
 # load pretrained agent
 parser.add_argument("--load", type=int, default=0)
 # visualize the video
@@ -95,13 +97,13 @@ GAMMA = 0.99
 USE_VIC = False
 # victim agent value network
 VIC_NET = args.vic_net
-
+MIX_RATIO = args.mix_ratio
 # training hyperparameters
 # total training iterations.
-TRAINING_ITER = 500000
-NBATCHES = 2 
+TRAINING_ITER = 10000000
+NBATCHES = 4
 NEPOCHS = 4
-LR = 8e-4
+LR = 3e-4
 LR_SCHEDULE = args.lr_sch
 NSTEPS = args.nsteps
 CHECKPOINT_STEP = 1000000
@@ -183,20 +185,25 @@ if __name__=="__main__":
         # reward_anneal decay
         scheduler = Scheduler(annealer_dict={'lr': ConstantAnnealer(LR)})
         env_name = GAME_ENV
-
         # multi to single
+        '''
         venv = SubprocVecEnv([lambda: make_adv_multi2single_env(env_name, ADV_AGENT_PATH, ADV_AGENT_NORM_PATH,
                                                                 REW_SHAPE_PARAMS, scheduler, ADV_ISMLP,
                                                                 reverse=REVERSE) for i in range(N_GAME)])
+        '''
+        venv = SubprocVecEnv([lambda: make_mixadv_multi2single_env(env_name, VIC_AGT_ID, ADV_AGENT_PATH, ADV_AGENT_NORM_PATH,
+                                                  REW_SHAPE_PARAMS, scheduler, ADV_ISMLP,
+                                                  reverse=REVERSE, ratio=MIX_RATIO) for i in range(N_GAME)])
         # test
         if REVERSE:
-            venv = Monitor(venv, 1)
+            venv = Multi_Monitor(venv, 1)
         else:
-            venv = Monitor(venv, 0)
+            venv = Multi_Monitor(venv, 0)
 
         # reward sharping.
         rew_shape_venv = apply_reward_wrapper(single_env=venv, scheduler=scheduler,
-                                              agent_idx=0, shaping_params=REW_SHAPE_PARAMS)
+                                              agent_idx=0, shaping_params=REW_SHAPE_PARAMS,
+                                              total_step=TRAINING_ITER)
 
         # normalize reward
         venv = VecNormalize(rew_shape_venv, norm_obs=not LOAD_VICTIM_NORM)
