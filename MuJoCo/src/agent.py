@@ -12,6 +12,7 @@ from zoo_utils import MlpPolicyValue, LSTMPolicy, load_from_file, load_from_mode
 from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 from ppo2_wrap import MyPPO2
 
+
 # Random agent
 class RandomAgent(object):
 
@@ -102,30 +103,6 @@ def make_victim_agent(env_name, ob_space, action_space, end=40):
     return VictimAgent(env_name, ob_space, action_space, end=end)
 
 
-# Randomly mixed two agents 
-class MixedAgent(object):
-
-    def __init__(self, agent1, agent2, agent_type='even_odd', ratio=0.1):
-        self.agent1 = agent1
-        self.agent2 = agent2
-        self.ratio = ratio
-
-    def act(self, observation, reward=None, done=None):
-        eps = random.uniform(0, 1)
-        if(eps<=self.ratio):
-            return self.agent2.act(observation, reward, done)
-        else:
-            return self.agent1.act(observation, reward, done)
-
-
-def make_mixed_agent(agent1, agent2, ratio=0.005):
-
-    if ratio is not None:
-        return MixedAgent(agent1, agent2, ratio)
-    else:
-        return MixedAgent(agent1, agent2)
-
-
 def load_zoo_agent(env_name, ob_space, action_space, tag=1, version=3, scope=""):
     sess=tf.get_default_session()
     if sess is None:
@@ -204,6 +181,7 @@ def load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp=Tru
     setFromFlat(adv_agent_variables, param)
     return adv_agent
 
+
 class AdvAgent(object):
     def __init__(self, ob_space, action_space, n_envs, adv_model_path, adv_ismlp, adv_obs_normpath=None):
         self.agent = load_adv_agent(ob_space, action_space, n_envs, adv_model_path, adv_ismlp)
@@ -225,6 +203,7 @@ class AdvAgent(object):
                                  -self.clip_obs, self.clip_obs)
         action, _, self.state, _ = self.agent.step(obs=observation, state=self.state, mask=done, deterministic=True)
         return action
+
     def reset(self):
         self.state = None
 

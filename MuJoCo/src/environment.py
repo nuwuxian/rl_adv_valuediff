@@ -21,6 +21,7 @@ def func(x):
   else:
     return x
 
+
 # norm-agent
 class Monitor(VecEnvWrapper):
     def __init__(self, venv, agent_idx):
@@ -149,9 +150,10 @@ class Multi_Monitor(VecEnvWrapper):
         self.outcomes = []
         self.adv_outcomes = []
 
+
 class Multi2SingleEnv(Wrapper):
 
-    def __init__(self, env, env_name, agent, agent_idx, shaping_params, scheduler, norm=True,
+    def __init__(self, env, env_name, agent, agent_idx, shaping_params, scheduler, total_step, norm=True,
                  retrain_victim=False, clip_obs=10., clip_reward=10., gamma=0.99, epsilon=1e-8,
                  mix_agent=False, mix_ratio=0.5, _agent=None):
 
@@ -176,6 +178,7 @@ class Multi2SingleEnv(Wrapper):
         self.observation_space = env.observation_space.spaces[0]
         # action dimensionality
         self.action_space = env.action_space.spaces[0]
+        self.total_step = total_step
 
         # normalize the victim agent's obs and rets
         self.obs_rms = RunningMeanStd(shape=self.observation_space.shape)
@@ -281,8 +284,10 @@ class Multi2SingleEnv(Wrapper):
         # self.oppo_reward = -1.0 * self.info['reward_remaining'] * 0.01
         # self.abs_reward =  info['reward_remaining'] * 0.01 - self.info['reward_remaining'] * 0.01
 
-        self.oppo_reward = apply_reward_shapping(self.info, self.shaping_params, self.scheduler)
-        self.abs_reward = apply_reward_shapping(info, self.shaping_params, self.scheduler)
+        frac_remaining = max(1 - self.cnt / self.total_step, 0)
+
+        self.oppo_reward = apply_reward_shapping(self.info, self.shaping_params, self.scheduler, frac_remaining)
+        self.abs_reward = apply_reward_shapping(info, self.shaping_params, self.scheduler, frac_remaining)
         self.abs_reward = self.abs_reward - self.oppo_reward
 
         if self.norm:
@@ -293,11 +298,12 @@ class Multi2SingleEnv(Wrapper):
             if self.done:
                 self.ret[0] = 0
                 self.ret_abs[0] = 0
+
         if done:
-          if 'winner' in self.info: # victim win.
-            info['loser'] = True
-          if self.is_advagent and self.retrain_victim:
-            info['adv_agent'] = True
+            if 'winner' in self.info: # opponent (the agent that is not being trained) win.
+                info['loser'] = True
+            if self.is_advagent and self.retrain_victim: # Number of adversarial agent trajectories
+                info['adv_agent'] = True
         return ob, reward, done, info
 
     def _normalize_(self, ret, ret_abs, reward, abs_reward):
@@ -336,7 +342,7 @@ class Multi2SingleEnv(Wrapper):
         if self.mix_ratio == 0.5:
             self.is_advagent = not self.is_advagent
         else:
-            self.is_advagent = (random.uniform(0, 1) < self.mix_ratio)
+            self.is_advagent = (random.uniform(0, 1) < self.mix_ratio) # mix_ratio means the ratio of adv_agent
 
         if self.agent_idx == 1:
             ob, self.ob = self.env.reset()
@@ -345,11 +351,11 @@ class Multi2SingleEnv(Wrapper):
         return ob
 
 
-def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, reverse=True):
+def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, total_step, reverse=True):
+
+    # Specify the victim party.
     if 'You' in env_name.split('/')[1]:
         tag = 2
-    # elif 'Kick' in env_name.split('/')[1]:
-    #     tag = 1
     else:
         tag = 1
 
@@ -359,24 +365,20 @@ def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, reve
     zoo_agent = make_zoo_agent(env_name, env.observation_space.spaces[1], env.action_space.spaces[1],
                                tag=tag, version=version)
 
-    return Multi2SingleEnv(env, env_name, zoo_agent, reverse, shaping_params, scheduler)
+    return Multi2SingleEnv(env, env_name, zoo_agent, reverse, shaping_params, scheduler, total_step=total_step)
 
-
-def make_adv_multi2single_env(env_name, adv_agent_path, adv_agent_norm_path, shaping_params, scheduler, adv_ismlp, n_envs=1, reverse=True):
-    env = gym.make(env_name)
-    zoo_agent = make_adv_agent(env.observation_space.spaces[1], env.action_space.spaces[1], n_envs, adv_agent_path,
-                               adv_ismlp=adv_ismlp, adv_obs_normpath=adv_agent_norm_path)
-
-    return Multi2SingleEnv(env, env_name, zoo_agent, agent_idx=reverse, shaping_params=shaping_params,
-                           scheduler=scheduler, retrain_victim=True)
 
 # make combine agents
-def make_mixadv_multi2single_env(env_name, version, adv_agent_path, adv_agent_norm_path, shaping_params, scheduler, adv_ismlp, n_envs=1, reverse=True, ratio=0.5):
+def make_mixadv_multi2single_env(env_name, version, adv_agent_path, adv_agent_norm_path, shaping_params, scheduler,
+                                 adv_ismlp, total_step, n_envs=1, reverse=True, ratio=0.5):
     env = gym.make(env_name)
+
+    # specify the normal opponent of the victim agent.
     if 'You' in env_name.split('/')[1]:
         tag = 1
     else:
         tag = 2
+
     opp_agent = make_zoo_agent(env_name, env.observation_space.spaces[1], env.action_space.spaces[1],
                                tag=tag, version=version)
     adv_agent = make_adv_agent(env.observation_space.spaces[1], env.action_space.spaces[1], n_envs, adv_agent_path,
@@ -384,18 +386,19 @@ def make_mixadv_multi2single_env(env_name, version, adv_agent_path, adv_agent_no
 
     return Multi2SingleEnv(env, env_name, adv_agent, agent_idx=reverse, shaping_params=shaping_params,
                            scheduler=scheduler, retrain_victim=True, mix_agent=True,
-                           mix_ratio=ratio, _agent=opp_agent)
+                           mix_ratio=ratio, _agent=opp_agent, total_step=total_step)
 
 
 from scheduling import ConditionalAnnealer, ConstantAnnealer, LinearAnnealer
 REW_TYPES = set(('sparse', 'dense'))
 
 
-def apply_reward_shapping(infos, shaping_params, scheduler):
+def apply_reward_shapping(infos, shaping_params, scheduler, frac_remaining):
     """ victim agent reward shaping function.
     :param: info: reward returned from the environment.
     :param: shaping_params: reward shaping parameters.
     :param: annealing factor decay schedule.
+    :param: linear annealing fraction.
     :return: shaped reward.
     """
     if 'metric' in shaping_params:
@@ -403,11 +406,10 @@ def apply_reward_shapping(infos, shaping_params, scheduler):
         scheduler.set_conditional('rew_shape')
     else:
         anneal_frac = shaping_params.get('anneal_frac')
-        if anneal_frac is not None:
+        if shaping_params.get('anneal_type')==0:
             rew_shape_annealer = ConstantAnnealer(anneal_frac)
-            # rew_shape_annealer = LinearAnnealer(1, 0, anneal_frac)
         else:
-            rew_shape_annealer = ConstantAnnealer(0.5)
+            rew_shape_annealer = LinearAnnealer(1, 0, anneal_frac)
 
     scheduler.set_annealer('rew_shape', rew_shape_annealer)
     reward_annealer = scheduler.get_annealer('rew_shape')
@@ -428,12 +430,12 @@ def apply_reward_shapping(infos, shaping_params, scheduler):
         shaped_reward[rew_type] += weight * rew_value
 
     # Compute total shaped reward, optionally annealing
-    reward = _anneal(shaped_reward, reward_annealer)
+    reward = _anneal(shaped_reward, reward_annealer, frac_remaining)
     return reward
 
 
-def _anneal(reward_dict, reward_annealer):
-    c = reward_annealer()
+def _anneal(reward_dict, reward_annealer, frac_remaining):
+    c = reward_annealer(frac_remaining)
     assert 0 <= c <= 1
     sparse_weight = 1 - c
     dense_weight = c

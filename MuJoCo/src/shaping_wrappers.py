@@ -6,6 +6,7 @@ from scheduling import ConditionalAnnealer, ConstantAnnealer, LinearAnnealer
 
 REW_TYPES = set(('sparse', 'dense'))
 
+
 class RewardShapingVecWrapper(VecEnvWrapper):
     """
     A more direct interface for shaping the reward of the attacking agent.
@@ -87,13 +88,10 @@ def apply_reward_wrapper(single_env, shaping_params, agent_idx, scheduler, total
         scheduler.set_conditional('rew_shape')
     else:
         anneal_frac = shaping_params.get('anneal_frac')
-        if anneal_frac is not None:
-            #rew_shape_annealer = LinearAnnealer(1, 0, anneal_frac)
+        if shaping_params.get('anneal_type')==0:
             rew_shape_annealer = ConstantAnnealer(anneal_frac)
         else:
-            # In this case, we weight the reward terms as per shaping_params
-            # but the ratio of sparse to dense reward remains constant.
-            rew_shape_annealer = ConstantAnnealer(0.5)
+            rew_shape_annealer = LinearAnnealer(1, 0, anneal_frac)
 
     scheduler.set_annealer('rew_shape', rew_shape_annealer)
     return RewardShapingVecWrapper(single_env, agent_idx=agent_idx,

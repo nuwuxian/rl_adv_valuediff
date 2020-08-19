@@ -28,6 +28,18 @@ parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 # which victim agent to use
 parser.add_argument("--vic_agt_id", type=int, default=1)
 
+# 2: YouShallNotPass
+# victim agent id: 1
+
+# 3: KickAndDefend
+# victim agent id: 1
+
+# 4: SumoAnts
+# victim agent id: 1
+
+# 5: SumoHumans
+# victim agent id: 3
+
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
 # adv agent network
@@ -39,11 +51,11 @@ parser.add_argument("--lr_sch", type=str, default='linear')
 parser.add_argument("--nsteps", type=int, default=2048)
 
 # victim loss coefficient.
-parser.add_argument("--vic_coef_init", type=int, default=0) # positive
+parser.add_argument("--vic_coef_init", type=int, default=1) # positive
 # victim loss schedule
 parser.add_argument("--vic_coef_sch", type=str, default='const')
 # adv loss coefficient.
-parser.add_argument("--adv_coef_init", type=int, default=-0) # negative
+parser.add_argument("--adv_coef_init", type=int, default=-1) # negative
 # adv loss schedule
 parser.add_argument("--adv_coef_sch", type=str, default='const')
 # diff loss coefficient.
@@ -71,13 +83,18 @@ VIC_AGT_ID = args.vic_agt_id
 # reward shaping parameters
 
 # KickAndDefend
+
+# anneal type
+# 0: constant
+# 1: linear
+
 REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 0.5, 'reward_contact': 1, 'reward_survive': 0.5,},
                                 'sparse': {'reward_remaining': 0.01}},
-                   'anneal_frac': 0.01}
+                   'anneal_frac': 0.01, 'anneal_type': 0}
 
 REW_SHAPE_PARAMS_ADV = {'weights': {'dense': {'reward_move': 0.5, 'reward_contact': 1, 'reward_survive': 0.5,},
                                 'sparse': {'reward_remaining': 0.01}},
-                   'anneal_frac': 0}
+                   'anneal_frac': 0, 'anneal_type': 0}
 
 ## sumoants
 # REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 1}, 'sparse': {'reward_remaining': 0.01}},
@@ -142,12 +159,12 @@ if 'You' in GAME_ENV.split('/')[1]:
 else:
     REVERSE = False
 
+
 def _save(model, root_dir, save_callbacks):
     os.makedirs(root_dir, exist_ok=True)
     model_path = osp.join(root_dir, 'model.pkl')
     model.save(model_path)
     save_callbacks(root_dir)
-
 
 
 def Adv_train(env, total_timesteps, checkpoint_interval, log_interval, callback_key, callback_mul, logger, seed, use_victim_ob):
@@ -176,13 +193,13 @@ def Adv_train(env, total_timesteps, checkpoint_interval, log_interval, callback_
 
 if __name__=="__main__":
 
-        # reward_anneal decay
-        scheduler = Scheduler(annealer_dict={'lr': ConstantAnnealer(LR)})
+        scheduler = Scheduler(annealer_dict={'lr': ConstantAnnealer(LR)})  # useless
+
         env_name = GAME_ENV
 
         # multi to single, apply normalization to victim agent's observation, reward, and diff reward.
         venv = SubprocVecEnv([lambda: make_zoo_multi2single_env(env_name, VIC_AGT_ID, REW_SHAPE_PARAMS, scheduler,
-                                                                reverse=REVERSE) for i in range(N_GAME)])
+                                                                reverse=REVERSE, total_step=TRAINING_ITER) for i in range(N_GAME)])
         # test
         if REVERSE:
             venv = Monitor(venv, 1)

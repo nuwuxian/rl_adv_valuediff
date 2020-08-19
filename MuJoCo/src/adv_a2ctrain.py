@@ -23,10 +23,23 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--env", type=int, default=3)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
-# number of game environment. should be divisible by NBATCHES if using a LSTM policy
+# number of game environment. should be dividable by NBATCHES if using a LSTM policy
 parser.add_argument("--n_games", type=int, default=2) # N_GAME = 8
 # which victim agent to use
 parser.add_argument("--vic_agt_id", type=int, default=1)
+
+# 2: YouShallNotPass
+# victim agent id: 1
+
+# 3: KickAndDefend
+# victim agent id: 1
+
+# 4: SumoAnts
+# victim agent id: 1
+
+# 5: SumoHumans
+# victim agent id: 3
+
 
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
@@ -142,12 +155,12 @@ if 'You' in GAME_ENV.split('/')[1]:
 else:
     REVERSE = False
 
+
 def _save(model, root_dir, save_callbacks):
     os.makedirs(root_dir, exist_ok=True)
     model_path = osp.join(root_dir, 'model.pkl')
     model.save(model_path)
     save_callbacks(root_dir)
-
 
 
 def Adv_train(env, total_timesteps, checkpoint_interval, log_interval, callback_key, callback_mul, logger, seed, use_victim_ob):

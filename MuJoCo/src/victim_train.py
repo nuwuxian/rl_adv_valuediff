@@ -8,7 +8,7 @@ from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines.common.vec_env.vec_normalize import VecNormalize
 from scheduling import ConstantAnnealer, Scheduler
 from shaping_wrappers import apply_reward_wrapper
-from environment import Monitor, make_adv_multi2single_env, Multi_Monitor, make_mixadv_multi2single_env
+from environment import Monitor, Multi_Monitor, make_mixadv_multi2single_env
 from logger import setup_logger
 from ppo2_wrap import MyPPO2
 from value import MlpValue, MlpLstmValue
@@ -26,15 +26,15 @@ parser.add_argument("--env", type=int, default=2)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
-parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
+parser.add_argument("--n_games", type=int, default=1) # N_GAME = 8
 # which victim agent to use
 parser.add_argument("--vic_agt_id", type=int, default=1)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='/home/xkw5132/Desktop/ccs_paper/adv_agent-zoo/you/000016072704/model.pkl')
+parser.add_argument("--adv_path", type=str, default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/our_attack/you/000016072704/model.pkl')
 parser.add_argument("--adv_ismlp", type=bool, default=True)
 # adversarial agent's observation norm mean / variance path
-parser.add_argument("--adv_obs_normpath", type=str, default='/home/xkw5132/Desktop/ccs_paper/adv_agent-zoo/you/000016072704/obs_rms.pkl')
+parser.add_argument("--adv_obs_normpath", type=str, default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/our_attack/you/000016072704/obs_rms.pkl')
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
 
@@ -149,6 +149,7 @@ if 'You' in GAME_ENV.split('/')[1]:
 else:
     REVERSE = True
 
+
 def _save(model, root_dir, save_callbacks):
     os.makedirs(root_dir, exist_ok=True)
     model_path = osp.join(root_dir, 'model.pkl')
@@ -193,7 +194,7 @@ if __name__=="__main__":
         '''
         venv = SubprocVecEnv([lambda: make_mixadv_multi2single_env(env_name, VIC_AGT_ID, ADV_AGENT_PATH, ADV_AGENT_NORM_PATH,
                                                   REW_SHAPE_PARAMS, scheduler, ADV_ISMLP,
-                                                  reverse=REVERSE, ratio=MIX_RATIO) for i in range(N_GAME)])
+                                                  reverse=REVERSE, ratio=MIX_RATIO, total_step=TRAINING_ITER) for i in range(N_GAME)])
         # test
         if REVERSE:
             venv = Multi_Monitor(venv, 1)
