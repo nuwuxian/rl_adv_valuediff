@@ -31,10 +31,10 @@ parser.add_argument("--n_games", type=int, default=1) # N_GAME = 8
 parser.add_argument("--vic_agt_id", type=int, default=1)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/our_attack/you/000016072704/model.pkl')
+parser.add_argument("--adv_path", type=str, default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/ucb/you/model.npy')
 parser.add_argument("--adv_ismlp", type=bool, default=True)
 # adversarial agent's observation norm mean / variance path
-parser.add_argument("--adv_obs_normpath", type=str, default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/our_attack/you/000016072704/obs_rms.pkl')
+parser.add_argument("--adv_obs_normpath", type=str, default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/ucb/you/obs_rms.pkl')
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
 
@@ -44,7 +44,7 @@ parser.add_argument("--lr_sch", type=str, default='const')
 parser.add_argument("--nsteps", type=int, default=2048)
 
 # victim loss coefficient.
-parser.add_argument("--vic_coef_init", type=int, default=1) # positive
+parser.add_argument("--vic_coef_init", type=int, default=0) # positive
 # victim loss schedule
 parser.add_argument("--vic_coef_sch", type=str, default='const')
 # adv loss coefficient.

@@ -10,12 +10,16 @@ from abc import ABC, abstractmethod
 
 from tensorflow.contrib import layers
 
+
 def load_from_file(param_pkl_path):
 
     if param_pkl_path.endswith('.pkl'):
        with open(param_pkl_path, 'rb') as f:
             params = pickle.load(f)
+    else:
+        params = np.load(param_pkl_path)
     return params
+
 
 def load_from_model(param_pkl_path):
 
@@ -27,6 +31,8 @@ def load_from_model(param_pkl_path):
        for param in policy_param:
            flat_param.append(param.reshape(-1))
        flat_param = np.concatenate(flat_param, axis=0)
+    else:
+        flat_param = np.load(param_pkl_path)
     return flat_param
 
 # MLP
