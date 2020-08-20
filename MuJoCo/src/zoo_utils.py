@@ -32,7 +32,15 @@ def load_from_model(param_pkl_path):
            flat_param.append(param.reshape(-1))
        flat_param = np.concatenate(flat_param, axis=0)
     else:
-        flat_param = np.load(param_pkl_path)
+        flat_param = np.load(param_pkl_path, allow_pickle=True)
+        if len(flat_param)==3:
+            flat_param_1 = []
+            for i in flat_param[0]:
+                    flat_param_1.append(i)
+            flat_param = []
+            for param in flat_param_1:
+                flat_param.append(param.reshape(-1))
+            flat_param = np.concatenate(flat_param, axis=0)
     return flat_param
 
 # MLP
@@ -210,7 +218,7 @@ class DiagonalGaussian(object):
         return tf.reduce_sum(self.logstd + .5 * np.log(2.0 * np.pi * np.e), axis=-1)
 
 class MlpPolicyValue(Policy):
-    def __init__(self, scope, *, ob_space, ac_space, hiddens, convs=[], n_batch_train=1,
+    def __init__(self, scope, *, ob_space, ac_space, hiddens, rate=0.0, convs=[], n_batch_train=1,
                  sess=None, reuse=False, normalize=False):
         self.sess = sess
         self.recurrent = False
@@ -237,6 +245,7 @@ class MlpPolicyValue(Policy):
             last_out = obz
             for i, hid_size in enumerate(hiddens):
                 last_out = tf.nn.tanh(dense(last_out, hid_size, "vffc%i" % (i + 1)))
+
             self.vpredz = dense(last_out, 1, "vffinal")[:, 0]
 
             self.vpred = self.vpredz
@@ -247,6 +256,7 @@ class MlpPolicyValue(Policy):
             last_out = obz
             for i, hid_size in enumerate(hiddens):
                 last_out = tf.nn.tanh(dense(last_out, hid_size, "polfc%i" % (i + 1)))
+                last_out = tf.nn.dropout(last_out, rate=rate)
             mean = dense(last_out, ac_space.shape[0], "polfinal")
             logstd = tf.get_variable(name="logstd", shape=[n_batch_train, ac_space.shape[0]],
                                      initializer=tf.zeros_initializer())

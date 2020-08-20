@@ -262,12 +262,12 @@ class Multi2SingleEnv(Wrapper):
                 infos[1]['reward_remaining'] = -1000
 
         # separate victim and adversarial information.
-        if self.agent_idx == 0:
+        if self.agent_idx == 0: # vic is 0; adv is 1
           self.ob, ob = obs
           self.reward, reward = rewards
           self.done, done = dones
           self.info, info = infos
-        else:
+        else: # vic is 1; adv is 0
           ob, self.ob = obs
           reward, self.reward = rewards
           done, self.done = dones
