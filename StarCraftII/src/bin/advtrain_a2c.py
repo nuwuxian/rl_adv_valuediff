@@ -58,9 +58,9 @@ flags.DEFINE_float("clip_range", 0.1, "Clip range for PPO.")
 flags.DEFINE_float("ent_coef", 0.01, "Coefficient for the entropy term.")
 flags.DEFINE_float("vf_coef", 0.5, "Coefficient for the value loss.")
 
-flags.DEFINE_integer("vic_coef_init", 1, "vic_coef_values")
-flags.DEFINE_string("vic_coef_sch", 'const', "vic_coef_function")
-flags.DEFINE_integer("adv_coef_init", -1, "adv_coef_values")
+flags.DEFINE_integer("vic_coef_init", -1, "vic_coef_values") # negative 
+flags.DEFINE_string("vic_coef_sch", 'const', "vic_coef_function") # 
+flags.DEFINE_integer("adv_coef_init", -1, "adv_coef_values") # negative 
 flags.DEFINE_string("adv_coef_sch", 'const', "adv_coef_function")
 flags.DEFINE_integer("diff_coef_init", 0, "diff_coef_values")
 flags.DEFINE_string("diff_coef_sch", 'const', "diff_coef_sch")
