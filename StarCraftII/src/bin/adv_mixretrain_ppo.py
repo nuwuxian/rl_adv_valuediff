@@ -50,7 +50,7 @@ flags.DEFINE_string("reward_shaping_type", "None", "type of reward shaping.")
 # opponent model related hyperparameters.
 flags.DEFINE_string("opp_model_path", '/home/wenbo/target-agent/checkpoint-1050000-2', "Opponent Model Path")
 flags.DEFINE_string("norm_model_path", '/home/wenbo/target-agent/checkpoint-1050000-2', "Norm Model Path")
-flags.DEFINE_string("mix_ratio", 0.5, "ratio of playing with adv-agent")
+flags.DEFINE_float("mix_ratio", 0.5, "ratio of playing with adv-agent")
 flags.DEFINE_boolean("use_victim_ob", False, "whether use victim obs")
 
 # loss function related hyperparameters
