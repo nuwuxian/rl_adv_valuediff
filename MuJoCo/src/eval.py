@@ -229,53 +229,53 @@ if __name__ == "__main__":
 
     ## You Shall Not Pass
     # p.add_argument("--env", default=2, type=int) # 2: YouShallNotPass # 3: KickAndDefend # 4: SumoAnts # 5: SumoHumans
-
+    #
     # Adv agent
     # p.add_argument("--pi0_type", default="stable", type=str)
     # p.add_argument("--pi0_nn_type", default="mlp", type=str)
-
+    #
     # ucb adv.
     # p.add_argument("--pi0_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/ucb/you/model.npy", type=str)
     # p.add_argument("--pi0_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/ucb/you/obs_rms.pkl", type=str)
-
+    #
     # our adv.
     # p.add_argument("--pi0_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/our_attack/you/model.pkl", type=str)
     # p.add_argument("--pi0_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/our_attack/you/obs_rms.pkl", type=str)
-
+    #
     # zoo-agent
     # p.add_argument("--pi0_type", default="our", type=str)
     # p.add_argument("--pi0_nn_type", default="mlp", type=str)
-
+    #
     # p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/you-shall-not-pass/agent1_parameters-v1.pkl', type=str)
     # p.add_argument("--pi0_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/you-shall-not-pass/agent1_parameters-v1.pkl", type=str) # YouShallNotPass agent2 is the runner
-
-
+    #
+    #
     # victim-agent
-
+    #
     # zoo-victim
     # p.add_argument("--pi1_type", default="our", type=str)
     # p.add_argument("--pi1_nn_type", default="mlp", type=str)
     #
     # p.add_argument("--pi1_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/you-shall-not-pass/agent2_parameters-v1.pkl', type=str)
     # p.add_argument("--pi1_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/you-shall-not-pass/agent2_parameters-v1.pkl", type=str) # YouShallNotPass agent2 is the runner
-
+    #
     # our retrained vic.
     # p.add_argument("--pi1_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/our_attack/high_capacity/YouShallNotPass/20200816_125658-0/YouShallNotPassHumans-v0.pkl', type=str)
     # p.add_argument("--pi1_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/our_attack/high_capacity/YouShallNotPass/20200816_125708-1/YouShallNotPassHumans-v0.pkl', type=str)
     # p.add_argument("--pi1_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/our_attack/high_capacity/YouShallNotPass/20200816_125718-2/YouShallNotPassHumans-v0.pkl', type=str)
     # p.add_argument("--pi1_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/you-shall-not-pass/agent2_parameters-v1.pkl", type=str) # YouShallNotPass agent2 is the runner
-
+    #
     # ucb retrained vic.
-    # p.add_argument("--pi1_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/YouShallNotPass/20200819_043234-0/YouShallNotPassHumans-v0.npy', type=str)
-    # p.add_argument("--pi1_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/YouShallNotPass/20200819_043245-1/YouShallNotPassHumans-v0.npy', type=str)
-    # p.add_argument("--pi1_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/YouShallNotPass/20200819_043255-2/YouShallNotPassHumans-v0.npy', type=str)
+    # p.add_argument("--pi1_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/YouShallNotPass/20200820_160129-0/YouShallNotPassHumans-v0.pkl', type=str)
+    # p.add_argument("--pi1_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/YouShallNotPass/20200820_160139-1/YouShallNotPassHumans-v0.pkl', type=str)
+    # p.add_argument("--pi1_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/YouShallNotPass/20200820_160151-2/YouShallNotPassHumans-v0.pkl', type=str)
     # p.add_argument("--pi1_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/you-shall-not-pass/agent2_parameters-v1.pkl", type=str) # YouShallNotPass agent2 is the runner
+    #
 
 
 
-
-    ## SumoHumans
-
+    # ## SumoHumans
+    #
     p.add_argument("--env", default=5, type=int) # 2: YouShallNotPass # 3: KickAndDefend # 4: SumoAnts # 5: SumoHumans
 
     # victim-agent
@@ -287,26 +287,22 @@ if __name__ == "__main__":
     # p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/sumo/humans/agent_parameters-v3.pkl', type=str)
     # p.add_argument("--pi0_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/sumo/humans/agent_parameters-v3.pkl", type=str)
 
-
-    # p.add_argument("--pi0_type", default="our", type=str)
-    # p.add_argument("--pi0_nn_type", default="lstm", type=str)
-
     # our retrained vic.
-    p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/our_attack/high_capacity/SumoHumans/20200817_093255-0/SumoHumans-v0.npy', type=str)
+    # p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/our_attack/high_capacity/SumoHumans/20200817_093255-0/SumoHumans-v0.npy', type=str)
     # p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/our_attack/high_capacity/SumoHumans/20200817_093302-1/SumoHumans-v0.npy', type=str)
     # p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/our_attack/high_capacity/SumoHumans/20200817_093313-2/SumoHumans-v0.npy', type=str)
-    p.add_argument("--pi0_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/sumo/humans/agent_parameters-v3.pkl", type=str)
+    # p.add_argument("--pi0_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/sumo/humans/agent_parameters-v3.pkl", type=str)
 
     # ucb retrained vic.
-    # p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/SumoHumans/20200818_194850-0/SumoHumans-v0.npy', type=str)
-    # p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/SumoHumans/20200818_194901-1/SumoHumans-v0.npy', type=str)
-    # p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/SumoHumans/20200818_194912-2/SumoHumans-v0.npy', type=str)
-    # p.add_argument("--pi0_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/sumo/humans/agent_parameters-v3.pkl", type=str)
+    p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/SumoHumans/20200820_175047-0/SumoHumans-v0.pkl', type=str)
+    # p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/SumoHumans/20200820_175057-1/SumoHumans-v0.pkl', type=str)
+    # p.add_argument("--pi0_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/retrain_50/ucb/SumoHumans/20200820_175107-2/SumoHumans-v0.pkl', type=str)
+    p.add_argument("--pi0_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/sumo/humans/agent_parameters-v3.pkl", type=str)
 
     # zoo-agent
     # p.add_argument("--pi1_type", default="our", type=str)
     # p.add_argument("--pi1_nn_type", default="lstm", type=str)
-
+    #
     # p.add_argument("--pi1_path", default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/sumo/humans/agent_parameters-v1.pkl', type=str)
     # p.add_argument("--pi1_norm_path", default="/Users/Henryguo/Desktop/rl_newloss/MuJoCo/multiagent-competition/agent-zoo/sumo/humans/agent_parameters-v1.pkl", type=str)
 

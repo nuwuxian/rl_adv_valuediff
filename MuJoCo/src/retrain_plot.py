@@ -227,8 +227,8 @@ if __name__ == "__main__":
     log_dir = args.log_dir
 
     # game = 'YouShallNotPass'
-    game = 'KickAndDefend'
-    # game = 'SumoHumans'
+    # game = 'KickAndDefend'
+    game = 'SumoHumans'
     # game = 'SumoAnts'
     log_dir = log_dir + '/' + game
 
