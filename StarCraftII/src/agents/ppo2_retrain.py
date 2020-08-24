@@ -589,7 +589,7 @@ class Adv_Learner(object):
     self._unroll_split = unroll_split if self._model.initial_state is None else 1
     assert self._unroll_length % self._unroll_split == 0
     self._data_queue = deque(maxlen=queue_size * self._unroll_split)
-    self._data_timesteps = deque(maxlen=100)
+    self._data_timesteps = deque(maxlen=200)
     self._episode_infos = deque(maxlen=max_episode)
     self._num_unrolls = 0
 
