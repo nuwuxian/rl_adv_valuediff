@@ -124,7 +124,7 @@ class Adv_Model(object):
             tf.clip_by_value(ratio, 1.0 - CLIPRANGE, 1.0 + CLIPRANGE)
 
         adv_pg_loss = tf.reduce_mean(tf.maximum(adv_pg_losses, adv_pg_losses2))
-        opp_pg_loss = tf.reduce_mean(opp_ADV * self.coef_opp_ph * neglogpac)
+        opp_pg_loss = -1.0 * tf.reduce_mean(opp_ADV * self.coef_opp_ph * neglogpac)
         abs_pg_loss = tf.reduce_mean(abs_ADV * self.coef_abs_ph * neglogpac)
 
         pg_loss = adv_pg_loss + opp_pg_loss + abs_pg_loss
