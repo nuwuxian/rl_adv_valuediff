@@ -325,7 +325,7 @@ class PPO_A2C(ActorCriticRLModel):
                           tf.clip_by_value(ratio, 1.0 - self.clip_range_ph, 1.0 + self.clip_range_ph)
 
                     self.adv_pg_loss = tf.reduce_mean(tf.maximum(adv_pg_losses, adv_pg_losses2))
-                    self.opp_pg_loss = tf.reduce_mean(self.opp_advs_ph * self.coef_opp_ph * neglogpac)
+                    self.opp_pg_loss = -1.0 * tf.reduce_mean(self.opp_advs_ph * self.coef_opp_ph * neglogpac)
                     self.abs_pg_loss = tf.reduce_mean(self.abs_advs_ph * self.coef_abs_ph * neglogpac)
 
                     self.pg_loss = self.adv_pg_loss + self.opp_pg_loss + self.abs_pg_loss
