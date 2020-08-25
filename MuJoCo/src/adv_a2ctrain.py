@@ -52,7 +52,7 @@ parser.add_argument("--lr_sch", type=str, default='linear')
 parser.add_argument("--nsteps", type=int, default=2048)
 
 # victim loss coefficient.
-parser.add_argument("--vic_coef_init", type=int, default=0) # negative
+parser.add_argument("--vic_coef_init", type=int, default=0) # positive
 # victim loss schedule
 parser.add_argument("--vic_coef_sch", type=str, default='const')
 # adv loss coefficient.
