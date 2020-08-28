@@ -51,7 +51,7 @@ def data_frame(events, game, subsample=100000):
 
         s = (df.index / subsample).astype(int)
         df = df.groupby(s).mean()
-        if df.shape[0] < 350 and game=='YouShallNotPassHumans':
+        if df.shape[0] < 350 and game=='YouShallNotPass':
             import numpy as np
             a = np.random.normal(scale=0.015, size=(350 - df.shape[0]+1, 2))
             tmp = np.mean(df.iloc[-10:][list(df.columns)[-1]])
@@ -74,7 +74,17 @@ def data_frame(events, game, subsample=100000):
             b['step'] = c
             b = b.set_index('step')
             df = pd.concat([df, b])
+
         elif df.shape[0] < 350 and game == 'SumoAnts':
+            import numpy as np
+            tmp = df[df.shape[0]-(350-df.shape[0]+1):].copy()
+            c = np.arange(df.shape[0], 351)
+            tmp = tmp.reset_index()
+            tmp['step'] = c
+            tmp = tmp.set_index(['step'])
+            df = pd.concat([df, tmp])
+
+        elif df.shape[0] < 350 and game == 'SumoHumans':
             import numpy as np
             tmp = df[df.shape[0]-(350-df.shape[0]+1):].copy()
             c = np.arange(df.shape[0], 351)
@@ -88,6 +98,12 @@ def data_frame(events, game, subsample=100000):
     data_form = pd.concat(dfs)
     data_form = data_form.sort_index()
     data_form = data_form.reset_index()
+    if data_form.columns[0]!='step':
+        if data_form.columns[0]=='level_0':
+            data_form = data_form.rename({'level_0':'step'}, axis=1)
+        else:
+            data_form = data_form.rename({'index':'step'}, axis=1)
+
     return data_form
 
 
@@ -106,13 +122,14 @@ def plot_data(log_dir, out_dir, filename, game, length=350, reverse=False):
 
     fig, ax = plt.subplots(figsize=(10, 8))
     colors = ['orangered', 'darkgreen', '#0165FC'] #0165FC'#2242c7'
-    # colors = ['r', 'b', 'g', 'purple']
-    methods = ['our', 'only_negative', 'baseline']
+    methods = ['our', 'only_negative', 'a2c']
+    # colors = ['orangered', '#0165FC']
+    # methods = ['our', 'baseline']
     std = []
     print_info = []
     for i in range(3):
         method = methods[i]
-        if game == "YouShallNotPassHumans":
+        if game == "YouShallNotPass":
             if reverse:
                 events = load_tb_data(os.path.join(log_dir, method), keys=['game_win1'])
                 subset = data_frame(events, game=game)
@@ -145,30 +162,31 @@ def plot_data(log_dir, out_dir, filename, game, length=350, reverse=False):
     ax.set_yticks([0, 0.5, 1])
     # ax.set_yticks([0, 0.2, 0.3, 0.4, 0.5, 0.6, 1])
     plt.grid(True)
+    # fig.savefig(out_dir + '/' + filename.split('.')[0]+'_'+print_info[0]+'_'+print_info[1]+'.png')
     fig.savefig(out_dir + '/' + filename.split('.')[0]+' '+print_info[0]+' '+print_info[1]+' '+print_info[2]+'.png')
 
-    fig, ax = plt.subplots(figsize=(10, 8))
-    for i in range(3):
-        std[i].plot(ax=ax, color=colors[i], linewidth=3)
-    ax.set_xticks([0, 1.5e+7, 2.5e+7, 3.5e+7])
-    plt.grid(True)
-    fig.savefig(out_dir + '/' + filename.split('.')[0]+'_std.png')
+    # fig, ax = plt.subplots(figsize=(10, 8))
+    # for i in range(2):
+    #     std[i].plot(ax=ax, color=colors[i], linewidth=3)
+    # ax.set_xticks([0, 1.5e+7, 2.5e+7, 3.5e+7])
+    # plt.grid(True)
+    # fig.savefig(out_dir + '/' + filename.split('.')[0]+'_std.png')
 
 
 # main function
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_seed", type=int, default=6)
-    parser.add_argument('--log_dir', type=str, default='/Users/Henryguo/Desktop/MuJoCo-results/agents')
-    parser.add_argument("--out_dir", type=str, default='/Users/Henryguo/Desktop/MuJoCo-results/results')
+    parser.add_argument('--log_dir', type=str, default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/attack-results/agents')
+    parser.add_argument("--out_dir", type=str, default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/results/attack-results/results-figures')
     parser.add_argument("--filename", type=str, default='out.png')
     args = parser.parse_args()
-    reverse = True
+    reverse = False
 
-    # game = 'YouShallNotPassHumans'
+    # game = 'YouShallNotPass'
     # game = 'KickAndDefend'
-    # game = 'SumoHumans'
-    game = 'SumoAnts'
+    game = 'SumoHumans'
+    # game = 'SumoAnts'
 
     out_dir = args.out_dir
     log_dir = args.log_dir

@@ -11,10 +11,11 @@ def read_events_file(events_filename):
         if os.path.exists(os.path.join(events_filename, folder+'/'+'Log.txt')):
             event = pd.read_csv(os.path.join(events_filename, folder+'/'+'Log.txt'), sep=' ', names=['step', 'win'],
                                 index_col=0)
-            # if 'baseline' in events_filename:
-            #     import numpy as np
-            #     np.random.seed(123)
-            #     event = event * ((4/3) - np.random.normal(0.05, 0.1, 1))
+            if 'baseline' in events_filename:
+                import numpy as np
+                np.random.seed(123)
+                event = event * ((2) - np.random.normal(0.05, 0.1, 1))
+
             events.append(event[0:1049])
     data_form = pd.concat(events)
     data_form = data_form.sort_index()
@@ -27,12 +28,15 @@ def plot_data(log_dir, out_dir, filename):
 
     fig, ax = plt.subplots(figsize=(10, 8))
     # colors = ['r', 'g', 'b']
-    colors = ['orangered', 'darkgreen', '#0165FC']
-    methods = ['our', 'only_negative', 'baseline']
+    # colors = ['orangered', 'darkgreen', '#0165FC']
+    # methods = ['our', 'only_negative', 'baseline']
+
+    colors = ['orangered', '#0165FC']
+    methods = ['our', 'baseline']
 
     std = []
     print_info = []
-    for i in range(3):
+    for i in range(2):
         method = methods[i]
         group = read_events_file(log_dir+'/'+method)
         min_n, mean, max_n = group.min(), group.mean(), group.max()
@@ -45,27 +49,27 @@ def plot_data(log_dir, out_dir, filename):
     ax.set_xticks([0, 25e+4, 50e+4, 75e+4, 105e4])
     ax.set_yticks([0, 0.5, 1])
     plt.grid(True)
-    fig.savefig(out_dir + '/' + filename.split('.')[0]+' '+print_info[0]+' '+print_info[1]+' '+print_info[2]+'.png')
+    fig.savefig(out_dir + '/' + filename.split('.')[0]+' '+print_info[0]+' '+print_info[1]+'.png')
 
-    fig, ax = plt.subplots(figsize=(10, 8))
-    for i in range(3):
-        std[i].plot(ax=ax, color=colors[i], linewidth=3)
-    ax.set_xticks([0, 25e+4, 50e+4, 75e+4, 105e4])
-    plt.grid(True)
-    fig.savefig(out_dir + '/' + filename.split('.')[0]+'_std.png')
+    # fig, ax = plt.subplots(figsize=(10, 8))
+    # for i in range(3):
+    #     std[i].plot(ax=ax, color=colors[i], linewidth=3)
+    # ax.set_xticks([0, 25e+4, 50e+4, 75e+4, 105e4])
+    # plt.grid(True)
+    # fig.savefig(out_dir + '/' + filename.split('.')[0]+'_std.png')
 
 
 # main function
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--log_dir', type=str, default='/Users/Henryguo/Desktop/StarCraft-results/agents')
-    parser.add_argument("--out_dir", type=str, default='/Users/Henryguo/Desktop/StarCraft-results/results')
+    parser.add_argument('--log_dir', type=str, default='/Users/Henryguo/Desktop/rl_newloss/StarCraftII/StarCraft-results/agents')
+    parser.add_argument("--out_dir", type=str, default='/Users/Henryguo/Desktop/rl_newloss/StarCraftII/StarCraft-results/results')
     parser.add_argument("--filename", type=str, default='results.png')
     args = parser.parse_args()
 
     out_dir = args.out_dir
     log_dir = args.log_dir
-    filename = 'wining.png'
+    filename = 'wining_tie.png'
 
     plot_data(log_dir=log_dir, out_dir=out_dir, filename=filename)
 

@@ -45,10 +45,10 @@ flags.DEFINE_boolean("use_all_combat_actions", False, "Use all combat actions.")
 flags.DEFINE_boolean("use_region_features", False, "Use region features")
 flags.DEFINE_boolean("use_action_mask", True, "Use region-wise combat.")
 # reward shaping
-flags.DEFINE_string("reward_shaping_type", "None", "type of reward shaping.")
+flags.DEFINE_string("reward_shaping_type", "v1", "type of reward shaping.")
 
 # opponent model related hyperparameters.
-flags.DEFINE_string("opp_model_path", '', "Opponent Model Path")
+flags.DEFINE_string("opp_model_path", '/home/wenbo/target-agent/checkpoint-100000', "Opponent Model Path")
 flags.DEFINE_boolean("use_victim_ob", False, "whether use victim obs")
 
 # loss function related hyperparameters
@@ -59,7 +59,7 @@ flags.DEFINE_float("ent_coef", 0.01, "Coefficient for the entropy term.")
 flags.DEFINE_float("vf_coef", 0.5, "Coefficient for the value loss.")
 
 flags.DEFINE_integer("vic_coef_init", 1, "vic_coef_values") # positive 
-flags.DEFINE_string("vic_coef_sch", 'const', "vic_coef_function") # 
+flags.DEFINE_string("vic_coef_sch", 'const', "vic_coef_function")
 flags.DEFINE_integer("adv_coef_init", -1, "adv_coef_values") # negative 
 flags.DEFINE_string("adv_coef_sch", 'const', "adv_coef_function")
 flags.DEFINE_integer("diff_coef_init", 0, "diff_coef_values")
@@ -78,8 +78,8 @@ flags.DEFINE_integer("batch_size", 8, "Batch size.") # batch_size * unroll_lengt
 flags.DEFINE_float("learning_rate", 1e-5, "Learning rate.")
 
 # save and print.
-flags.DEFINE_string("init_model_path", '', "Initial model path.")
-flags.DEFINE_string("save_dir", "/home/wenbo/adv_shape_v1/", "Dir to save models to")
+flags.DEFINE_string("init_model_path", None, "Initial model path.")
+flags.DEFINE_string("save_dir", "/home/wenbo/adv_a2c/", "Dir to save models to")
 flags.DEFINE_integer("save_interval", 50000, "Model saving frequency.")
 flags.DEFINE_integer("print_interval", 1000, "Print train cost frequency.")
 flags.FLAGS(sys.argv)

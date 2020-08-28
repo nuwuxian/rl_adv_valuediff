@@ -11,9 +11,9 @@ def read_events_file(events_filename):
     for folder in folders:
         if os.path.exists(os.path.join(events_filename, folder+'/'+'Log.txt')):
             event = pd.read_csv(os.path.join(events_filename, folder+'/'+'Log.txt'), sep=' ',
-                                names=['step', 'win', 'win_1', 'win_plus_tie'],
+                                names=['step', 'aa', 'bb', 'cc', 'win', 'win_1', 'win_plus_tie', 'dd', 'ee', 'ff'],
                                 index_col=0)
-            events.append(event[0:1600])
+            events.append(event[0:2200])
     data_form = pd.concat(events)
     data_form = data_form.sort_index()
     data_form = data_form.reset_index()
@@ -25,47 +25,47 @@ def read_events_file(events_filename):
 def plot_data(log_dir, out_dir, filename):
 
     fig, ax = plt.subplots(figsize=(10, 8))
-    # colors = ['r', 'b']
-    colors = ['orangered', '#0165FC']
+    colors = ['orangered']
 
-    group_win, group_tie = read_events_file(log_dir+'/'+'retrain-victim')
-    # group_win, group_tie = read_events_file(log_dir+'/'+'train-against-adv')
+    group_win, group_tie = read_events_file(log_dir)
 
     min_win, mean_win, max_win = group_win.min(), group_win.mean(), group_win.max()
     min_tie, mean_tie, max_tie = group_tie.min(), group_tie.mean(), group_tie.max()
 
-    # ax.fill_between(x=mean_win.index, y1=min_win, y2=max_win, alpha=0.4, color=colors[0])
-    # mean_win.plot(ax=ax, color=colors[0], linewidth=3)
+    ax.fill_between(x=mean_win.index, y1=min_win, y2=max_win, alpha=0.4, color=colors[0])
+    mean_win.plot(ax=ax, color=colors[0], linewidth=3)
 
-    ax.fill_between(x=mean_tie.index, y1=min_tie, y2=max_tie, alpha=0.4, color=colors[0])
-    mean_tie.plot(ax=ax, color=colors[0], linewidth=3)
+    # ax.fill_between(x=mean_tie.index, y1=min_tie, y2=max_tie, alpha=0.4, color=colors[0])
+    # mean_tie.plot(ax=ax, color=colors[0], linewidth=3)
 
-    ax.set_xticks([0, 40e+4, 80e+4, 120e+4, 160e+4])
+    ax.set_xticks([0, 40e+4, 80e+4, 120e+4, 160e+4, 200e+4])
     ax.set_yticks([0, 0.5, 1])
     plt.grid(True)
-    fig.savefig(out_dir + '/' + filename)
+    print_info = []
+    print_info.append('%s: min: %.4f, mean: %.4f, max: %.4f.' % ('our', max(min_win), max(mean_win), max(max_win)))
+    # print_info.append('%s: min: %.4f, mean: %.4f, max: %.4f.' % ('our', max(min_tie), max(mean_tie), max(max_tie)))
+    fig.savefig(out_dir + '/' + filename.split('.')[0]+' '+print_info[0]+'.png')
 
-    fig, ax = plt.subplots(figsize=(10, 8))
-    # group_win.std().plot(ax=ax, color=colors[0], linewidth=3)
-    group_tie.std().plot(ax=ax, color=colors[0], linewidth=3)
-
-    ax.set_xticks([0, 40e+4, 80e+4, 120e+4, 160e+4])
-    plt.grid(True)
-    fig.savefig(out_dir + '/' + filename.split('.')[0]+'_std.png')
+    # fig, ax = plt.subplots(figsize=(10, 8))
+    # group_tie.std().plot(ax=ax, color=colors[0], linewidth=3)
+    #
+    # ax.set_xticks([0, 40e+4, 80e+4, 120e+4, 160e+4])
+    # plt.grid(True)
+    # fig.savefig(out_dir + '/' + filename.split('.')[0]+'_std.png')
 
 
 # main function
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--log_dir', type=str, default='/Users/Henryguo/Desktop/StarCraft-results/agents')
-    parser.add_argument("--out_dir", type=str, default='/Users/Henryguo/Desktop/StarCraft-results/results')
+    parser.add_argument('--log_dir', type=str, default='/Users/Henryguo/Desktop/rl_newloss/StarCraftII/StarCraft-results/retrain_50/our_attack')
+    parser.add_argument('--out_dir', type=str, default='/Users/Henryguo/Desktop/rl_newloss/StarCraftII/StarCraft-results/retrain_50/our_attack')
     parser.add_argument("--filename", type=str, default='results.png')
     args = parser.parse_args()
 
     out_dir = args.out_dir
     log_dir = args.log_dir
-    # filename = 'against_adv_wining.png'
-    filename = 'retrain_wining_tie.png'
+    filename = 'against_adv_wining.png'
+    # filename = 'retrain_wining_tie.png'
 
     plot_data(log_dir=log_dir, out_dir=out_dir, filename=filename)
 
