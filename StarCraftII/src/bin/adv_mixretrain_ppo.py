@@ -216,7 +216,7 @@ def start_learner():
     # Change the dir_name
     FLAGS.save_dir = FLAGS.save_dir  + FLAGS.vic_coef_sch + "_" + str(FLAGS.vic_coef_init) + \
             "_" + FLAGS.adv_coef_sch + "_" + str(FLAGS.adv_coef_init) + "_" + FLAGS.diff_coef_sch + \
-            "_" + str(FLAGS.diff_coef_init) + "_" + str(FLAGS.reward_shaping_type)
+            "_" + str(FLAGS.diff_coef_init) + "_" + str(FLAGS.reward_shaping_type)  + "_" + str(FLAGS.mix_ratio)
     timestamp = make_timestamp()
 
     FLAGS.save_dir = osp.join(FLAGS.save_dir, '{}-{}'.format(timestamp, str(GAME_SEED)))
