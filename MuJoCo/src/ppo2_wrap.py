@@ -123,7 +123,7 @@ class MyPPO2(ActorCriticRLModel):
         self.opp_value = opp_value
 
         self.retrain_vicitim = retrain_victim
-        self.norm_victim = norm_victim
+        self.norm_victim = 'ob'
         self.use_baseline_policy = use_baseline_policy
 
         # self.hyper_weights = hyper_settings[:6]
@@ -454,9 +454,9 @@ class MyPPO2(ActorCriticRLModel):
                     param = load_from_file(param_pkl_path=env_path)
                     # tf.trainable_variables only works in the current function.
                     # load the running mean and variance / trainable_variables
-                    ret_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="victim_policy/retfilter")
+                    # ret_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="victim_policy/retfilter")
                     obs_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="victim_policy/obsfilter")
-                    variables = ret_variable + obs_variable + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="victim_policy")
+                    variables = obs_variable + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="victim_policy")
                     setFromFlat(variables, param, self.sess)
 
                 self.summary = tf.summary.merge_all()
