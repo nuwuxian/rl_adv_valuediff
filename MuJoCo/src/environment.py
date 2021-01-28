@@ -13,7 +13,7 @@ from agent import make_zoo_agent, make_adv_agent
 from collections import Counter
 # running-mean std
 from stable_baselines.common.running_mean_std import RunningMeanStd
-
+from observation_masking import make_mask_agent_wrappers
 
 def func(x):
   if type(x) == np.ndarray:
@@ -351,7 +351,7 @@ class Multi2SingleEnv(Wrapper):
         return ob
 
 
-def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, total_step, reverse=True):
+def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, total_step, mask_victim=False, reverse=True):
 
     # Specify the victim party.
     if 'You' in env_name.split('/')[1]:
@@ -360,6 +360,16 @@ def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, tota
         tag = 1
 
     env = gym.make(env_name)
+
+    # mask victim
+    if mask_victim:
+        mask_embed_kwargs = {  # control how embedded agent's observations are limited
+        "masking_type": "initialization",
+        }
+        agent_wrappers = make_mask_agent_wrappers(env_name, reverse, **mask_embed_kwargs)
+        for agent_id in agent_wrappers:
+            env.agents[agent_id] = agent_wrappers[agent_id](env.agents[agent_id])
+
     # if 'Kick' in env_name.split('/')[1]:
     #     env._max_episode_steps = 1500
     zoo_agent = make_zoo_agent(env_name, env.observation_space.spaces[1], env.action_space.spaces[1],
