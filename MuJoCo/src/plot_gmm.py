@@ -139,24 +139,22 @@ def density_fitter(activation_paths, output_dir, train_opponent, n_components, t
     # print('mean log prob train data', model_obj.score_samples(train_data).mean())
     # print('mean log prob validation data', model_obj.score_samples(train_opponent_validation_data).mean())
 
-def load_metadata(env):
-
-    metadata_path = '../activations/gmm/' + env + '/metadata_ucb.csv'
+def load_metadata(env, train_opponent):
+    metadata_path = '../activations/gmm/' + env + "/metadata_" + train_opponent + '.csv'
     df = pd.read_csv(metadata_path)
-
     # We want to evaluate on both the train and test set for the train opponent.
     # To disambiguate, we'll change the opponent_id for the train opponent in the test set.
     # For all other opponents, doesn't matter if we evaluate on "train" or "test" set
     # as they were trained on neither; we use the test set.
-    is_train_opponent = df["opponent_id"] == TRAIN_ID
+    is_train_opponent = df["opponent_id"] == train_opponent
     # Rewrite opponent_id for train opponent in test set
-    df.loc[is_train_opponent & ~df["is_train"], "opponent_id"] = TRAIN_ID + "_test"
+    df.loc[is_train_opponent & ~df["is_train"], "opponent_id"] = train_opponent + "_test"
     # Discard all non-test data, except for train opponent
     df = df.loc[is_train_opponent | ~df["is_train"]]
     return df
 
 
-def bar_chart(envs, savefile=None):
+def bar_chart(envs, train_opponent, savefile=None):
     """Bar chart of mean log probability for all opponent types, grouped by environment.
     For unspecified parameters, see get_full_directory.
     :param envs: (list of str) list of environments.
@@ -164,7 +162,7 @@ def bar_chart(envs, savefile=None):
     """
     dfs = []
     for env in envs:
-        df = load_metadata(env)
+        df = load_metadata(env, train_opponent)
         df["Environment"] = PRETTY_ENVS.get(env, env)
         dfs.append(df)
     longform = pd.concat(dfs)
@@ -236,10 +234,10 @@ if __name__ == '__main__':
     activation_paths['our'] = args.dir + '/activations_our_adv.npy'
     activation_paths['ucb'] = args.dir + '/activations_ucb_adv.npy'
 
-    density_fitter(activation_paths, args.output_dir, 'ucb', n_components=20, type='full')
+    density_fitter(activation_paths, args.output_dir, TRAIN_ID, n_components=20, type='full')
 
     styles = ["paper", "density_twocol"]
     sns.set_style("whitegrid")
     for style in styles:
         plt.style.use(STYLES[style])
-    bar_chart(ENV_NAMES, savefile='../activations/gmm/chart.png')
+    bar_chart(ENV_NAMES, TRAIN_ID, savefile='../activations/gmm/chart.png')
