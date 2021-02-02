@@ -43,32 +43,31 @@
 Refer to the ```https://github.com/Tencent/PySC2TencentExtension``` to install the StarCraft environment. Then, run the ```pip install -r requirments.txt``` to finalize the environment.
 
 ## Adv_train:
-- Existing Attack: Run the ```python -m bin.advtrain_ppo --job_name learner --vic_coef_init 0 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX &``` to start the learner. Run the 
+- Existing Attack: Run the ```python -m bin.advtrain_ppo --job_name learner --vic_coef_init 0 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX &``` to start the learner. To start the actor, run 
 ``` bash
 for i in $(seq 0 20); 
-    do python -m bin.advtrain_ppo --job_name=actor --vic_coef_init 0 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX --learner_ip localhost & 
+    do python -m bin.advtrain_ppo --job_name=actor --vic_coef_init 0 \
+       -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX --learner_ip localhost & 
 done;
 ``` 
-to start the actor. XX refers to the path to the results.
 
-- Our Attack: Run the ```python -m bin.advtrain_ppo --job_name learner --vic_coef_init -1 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX &``` to start the learner. Run the 
+- Our Attack: Run the ```python -m bin.advtrain_ppo --job_name learner --vic_coef_init -1 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX &``` to start the learner. To start the actor, run
 ``` bash
 for i in $(seq 0 20); 
-    do python -m bin.advtrain_ppo --job_name=actor --vic_coef_init -1 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX --learner_ip localhost & 
+    do python -m bin.advtrain_ppo --job_name=actor --vic_coef_init -1 \
+       -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX --learner_ip localhost & 
 done;
 ``` 
-to start the actor. XX refers to the path to the results.
 
 ## Adv_retrain:
 - Modify the 51, 52, 83 lines of file ```bin/adv_mixretrain_ppo.py``` to set the adversarial agent path, norm agent path, and victim path separately.
 
-- Run the ```python -m bin.adv_mixretrain_ppo --job_name learner --save_dir XX &``` to start the learner. Run the
+- Run the ```python -m bin.adv_mixretrain_ppo --job_name learner --save_dir XX &``` to start the learner. To start the actor, run
 ``` bash 
 for i in $(seq 0 20); 
     do python -m bin.adv_mixretrain_ppo --job_name=actor --save_dir XX --learner_ip localhost & 
 done;
 ```
-to start the actor. XX refers to the path to the results.
 
 ## Visualizing the winning rate of the adversarial agents or retrained victim agents:
 - Run ```python plot.py --log_dir XX --out_dir @@``` XX refers to the path to the the adversary training results; @@ refers to the output folder.
