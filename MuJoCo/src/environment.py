@@ -14,7 +14,6 @@ from collections import Counter
 # running-mean std
 from stable_baselines.common.running_mean_std import RunningMeanStd
 
-
 def func(x):
   if type(x) == np.ndarray:
     return x[0]
@@ -359,6 +358,7 @@ def make_zoo_multi2single_env(env_name, version, shaping_params, scheduler, tota
         tag = 1
 
     env = gym.make(env_name)
+
     # if 'Kick' in env_name.split('/')[1]:
     #     env._max_episode_steps = 1500
     zoo_agent = make_zoo_agent(env_name, env.observation_space.spaces[1], env.action_space.spaces[1],

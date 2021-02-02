@@ -73,7 +73,7 @@ if video:
         'annotation_params': {
             'camera_config': 'default',
             'short_labels': False,
-            'resolution': (640, 480),
+            'resolution': (1280, 720),
             'font': 'times',
             'font_size': 24,
         },

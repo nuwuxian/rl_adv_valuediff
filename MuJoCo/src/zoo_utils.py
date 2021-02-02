@@ -243,6 +243,7 @@ class MlpPolicyValue(Policy):
                 obz = tf.clip_by_value((self.observation_ph - self.ob_rms.mean) / self.ob_rms.std, -5.0, 5.0)
 
             last_out = obz
+            
             for i, hid_size in enumerate(hiddens):
                 last_out = tf.nn.tanh(dense(last_out, hid_size, "vffc%i" % (i + 1)))
 
@@ -254,9 +255,17 @@ class MlpPolicyValue(Policy):
             if self.normalized and self.normalized != 'ob':
                 self.vpred = self.vpredz * self.ret_rms.std + self.ret_rms.mean
             last_out = obz
+
+
+            # ff activation policy
+            ff_out = []
             for i, hid_size in enumerate(hiddens):
                 last_out = tf.nn.tanh(dense(last_out, hid_size, "polfc%i" % (i + 1)))
+                ff_out.append(last_out)
                 last_out = tf.nn.dropout(last_out, rate=rate)
+
+            self.policy_ff_acts = tf.concat(ff_out, axis=-1)
+
             mean = dense(last_out, ac_space.shape[0], "polfinal")
             logstd = tf.get_variable(name="logstd", shape=[n_batch_train, ac_space.shape[0]],
                                      initializer=tf.zeros_initializer())
@@ -273,12 +282,19 @@ class MlpPolicyValue(Policy):
             self.taken_action_ph: taken_action
         }
 
-    def act(self, observation, stochastic=True):
+    def act(self, observation, stochastic=True, extra_op=None):
         outputs = [self.sampled_action, self.vpred]
-        a, v = tf.get_default_session().run(outputs, {
-            self.observation_ph: observation[None],
-            self.stochastic_ph: stochastic})
-        return a[0], {'vpred': v[0]}
+        if extra_op == None:
+            a, v = tf.get_default_session().run(outputs, {
+                self.observation_ph: observation[None],
+                self.stochastic_ph: stochastic})
+            return a[0], {'vpred': v[0]}
+        else:
+            outputs.append(self.policy_ff_acts)
+            a, v, ex = tf.get_default_session().run(outputs, {
+                self.observation_ph: observation[None],
+                self.stochastic_ph: stochastic})
+            return a[0], {'vpred': v[0]}, ex[0, ]
 
     def get_variables(self):
         return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.scope)
@@ -340,8 +356,10 @@ class LSTMPolicy(Policy):
                 obz = tf.clip_by_value((self.observation_ph - self.ob_rms.mean) / self.ob_rms.std, -5.0, 5.0)
 
             last_out = obz
+
             for hidden in hiddens[:-1]:
                 last_out = tf.contrib.layers.fully_connected(last_out, hidden)
+
             self.zero_state = []
             self.state_in_ph = []
             self.state_out = []
@@ -364,6 +382,8 @@ class LSTMPolicy(Policy):
             last_out = obz
             for hidden in hiddens[:-1]:
                 last_out = tf.contrib.layers.fully_connected(last_out, hidden)
+                self.policy_ff_acts = last_out
+
             cell = tf.contrib.rnn.BasicLSTMCell(hiddens[-1], reuse=reuse)
             size = cell.state_size
             self.zero_state.append(np.zeros(size.c, dtype=np.float32))
@@ -402,15 +422,25 @@ class LSTMPolicy(Policy):
             self.taken_action_ph: taken_action
         }
 
-    def act(self, observation, stochastic=True):
+    def act(self, observation, stochastic=True, extra_op=None):
         outputs = [self.sampled_action, self.vpred, self.state_out]
         # design for the pre_state
         # notice the zero state
-        a, v, s = tf.get_default_session().run(outputs, {
-            self.observation_ph: observation[None, None],
-            self.state_in_ph: list(self.state[:, None, :]),
-            self.stochastic_ph: stochastic,
-            self.dones_ph:np.zeros(self.state[0, None, 0].shape)[:,None]})
+        if extra_op == None:
+            a, v, s = tf.get_default_session().run(outputs, {
+                self.observation_ph: observation[None, None],
+                self.state_in_ph: list(self.state[:, None, :]),
+                self.stochastic_ph: stochastic,
+                self.dones_ph:np.zeros(self.state[0, None, 0].shape)[:,None]})
+        else:
+            outputs.append(self.policy_ff_acts)
+            a, v, s, ex = tf.get_default_session().run(outputs, {
+                self.observation_ph: observation[None, None],
+                self.state_in_ph: list(self.state[:, None, :]),
+                self.stochastic_ph: stochastic,
+                self.dones_ph:np.zeros(self.state[0, None, 0].shape)[:,None]})
+
+
         self.state = []
         for x in s:
             self.state.append(x.c[0])
@@ -418,7 +448,10 @@ class LSTMPolicy(Policy):
         self.state = np.array(self.state)
 
         # finish checking.
-        return a[0, ], {'vpred': v[0, 0], 'state': self.state}
+        if extra_op == None:
+            return a[0, ], {'vpred': v[0, 0], 'state': self.state}
+        else:
+            return a[0, ], {'vpred': v[0, 0], 'state': self.state}, ex[0, 0, ]
 
     def get_variables(self):
         return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.scope)

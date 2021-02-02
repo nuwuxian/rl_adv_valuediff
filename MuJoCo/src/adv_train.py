@@ -67,6 +67,7 @@ parser.add_argument("--diff_coef_sch", type=str, default='const')
 parser.add_argument("--load", type=int, default=0)
 # visualize the video
 parser.add_argument("--render", type=int, default=0)
+
 args = parser.parse_args()
 
 # environment selection
@@ -199,7 +200,7 @@ if __name__=="__main__":
 
         # multi to single, apply normalization to victim agent's observation, reward, and diff reward.
         venv = SubprocVecEnv([lambda: make_zoo_multi2single_env(env_name, VIC_AGT_ID, REW_SHAPE_PARAMS, scheduler,
-                                                                reverse=REVERSE, total_step=TRAINING_ITER) for i in range(N_GAME)])
+                                      reverse=REVERSE, total_step=TRAINING_ITER) for i in range(N_GAME)])
         # test
         if REVERSE:
             venv = Monitor(venv, 1)
