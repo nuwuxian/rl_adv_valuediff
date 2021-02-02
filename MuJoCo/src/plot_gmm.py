@@ -223,19 +223,20 @@ def bar_chart(envs, train_opponent, savefile=None):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dir", type=str, default='../activations/gmm/SumoHumans')
-    parser.add_argument("--output_dir", type=str, default='../activations/gmm/SumoHumans')
+    parser.add_argument("--dir", type=str, default='../activations/gmm/')
+    parser.add_argument("--output_dir", type=str, default='../activations/gmm/')
 
     args = parser.parse_args()
-
-    activation_paths = {}
-
-    activation_paths['norm'] = args.dir + '/activations_norm.npy'
-    activation_paths['our'] = args.dir + '/activations_our_adv.npy'
-    activation_paths['ucb'] = args.dir + '/activations_ucb_adv.npy'
-
-    density_fitter(activation_paths, args.output_dir, TRAIN_ID, n_components=20, type='full')
-
+    
+    for env in ENV_NAMES:
+        args.dir += env
+        args.output_dir += env
+        activation_paths = {}
+        activation_paths['norm'] = args.dir + '/activations_norm.npy'
+        activation_paths['our'] = args.dir + '/activations_our_adv.npy'
+        activation_paths['ucb'] = args.dir + '/activations_ucb_adv.npy'
+        density_fitter(activation_paths, args.output_dir, TRAIN_ID, n_components=20, type='full')
+        
     styles = ["paper", "density_twocol"]
     sns.set_style("whitegrid")
     for style in styles:
