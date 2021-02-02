@@ -240,7 +240,6 @@ class Multi2SingleEnv(Wrapper):
             # mix agent
             if self.mix_agent and not self.is_advagent:
                 self_action = self._agent.act(observation=self.ob, reward=self.reward, done=self.done)
-
         else:
             self_action = self.agent.act(observation=self.ob, reward=self.reward, done=self.done)
         # note: current observation
