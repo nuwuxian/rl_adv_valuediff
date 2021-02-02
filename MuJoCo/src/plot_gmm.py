@@ -182,7 +182,7 @@ def bar_chart(envs, train_opponent, savefile=None):
     fig, ax = plt.subplots(1, 1, gridspec_kw=gridspec_kw)
 
     # Make colors consistent with previous figures
-    standard_cycle = list(plt.rcParams["axes.prop_cycle"])
+    palette = {}
     # palette['Our'] = 'red'
     # palette['Ucb'] = '#0165FC'
     # palette['ZooT'] = '#2ca02c'
