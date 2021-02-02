@@ -27,15 +27,15 @@
 
 - After training is done, the trained models and tensorboard logs will be saved into the ```~/rl_newloss/MuJoCo/victim-agent-zoo``` folder with different runs in different folders named by the starting time.
 
-## Visualizing the winning rate of the adversarial agents or retrained victim agents:
+## Visualizing the winning rate of the adversarial agents / retrained victim agents:
   - Run ```python plot.py --log_dir XX --out_dir @@``` XX refers to the path to the adversary training results, e.g., ```~/rl_newloss/MuJoCo/agent-zoo```; @@ refers to the output folder.
   - Run ```python retrain_plot.py --log_dir XX --out_dir @@``` XX refers to the path to the adversary retraining results, e.g., ```~/rl_newloss/MuJoCo/victim-agent-zoo```; @@ refers to the output folder.
   
 
-## Visualizing the GMM / T-SNE
+## Visualizing the GMM / t-SNE
   - Run ```python generate_activations.py --env=<env_id> --opp_path=<path-to-opponent> --vic_path=<path-to-victim> --norm_path=<path-to-opponent-obs_nms> --opp_type=<opponent_type> --out_dir=<output dir>``` to collect the victim activations when playing against different opponents. 
   
-  - To generate the t-sne visualization results, run ```python plot_tsne.py --dir XX --output_dir @@```. To generate the GMM visualization results, run ```python plot_gmm.py --dir XX --output_dir @@```. XX refers to the path to the folder which saves the victim activations; @@ refers to the output folder. 
+  - To generate the t-SNE visualization results, run ```python plot_tsne.py --dir XX --output_dir @@```. To generate the GMM visualization results, run ```python plot_gmm.py --dir XX --output_dir @@```. XX refers to the path to the folder which saves the victim activations; @@ refers to the output folder. 
 
 # Reproducing the results on the StarCraft Game:
 
