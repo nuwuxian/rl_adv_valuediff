@@ -1,4 +1,4 @@
-# Reproducing the results on the MuJoCo Game:
+# Reproducing the results on the MuJoCo Games:
 
 ## Install Mujoco environment: 
   - Install conda3 on your machine (https://www.anaconda.com/products/individual);  
@@ -37,7 +37,7 @@
   
   - To generate the t-SNE visualization results, run ```python plot_tsne.py --dir XX --output_dir @@```. To generate the GMM visualization results, run ```python plot_gmm.py --dir XX --output_dir @@```. XX refers to the path to the folder which saves the victim activations; @@ refers to the output folder. 
 
-# Reproducing the results on the StarCraft Game:
+# Reproducing the results on the StarCraft II Game:
 
 ## Install StarCraft environment:
 First, installing the StarCraft environment by pulling and installing the repo from: https://github.com/Tencent/PySC2TencentExtension. Then, run the ```pip install -r requirments.txt``` to install the required packages.
