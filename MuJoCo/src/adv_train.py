@@ -63,8 +63,6 @@ parser.add_argument("--diff_coef_init", type=int, default=0) # negative
 # diff loss schedule
 parser.add_argument("--diff_coef_sch", type=str, default='const')
 
-parser.add_argument("--mask_victim", type=bool, default=True)
-
 # load pretrained agent
 parser.add_argument("--load", type=int, default=0)
 # visualize the video
@@ -116,9 +114,6 @@ USE_VIC = False
 VIC_NET = args.vic_net
 # adv agent network
 ADV_NET = args.adv_net
-
-# mask out the part of the victim observation that represents the adversarial 
-MASK_VICTIM = args.mask_victim
 
 # training hyperparameters
 # total training iterations.
@@ -205,7 +200,7 @@ if __name__=="__main__":
 
         # multi to single, apply normalization to victim agent's observation, reward, and diff reward.
         venv = SubprocVecEnv([lambda: make_zoo_multi2single_env(env_name, VIC_AGT_ID, REW_SHAPE_PARAMS, scheduler,
-                                      reverse=REVERSE, total_step=TRAINING_ITER, mask_victim=MASK_VICTIM) for i in range(N_GAME)])
+                                      reverse=REVERSE, total_step=TRAINING_ITER) for i in range(N_GAME)])
         # test
         if REVERSE:
             venv = Monitor(venv, 1)

@@ -35,7 +35,7 @@ def simulate(venv, policies, render=False, record=True, norm_path=None):
             else:
                 # normalize the observation
                 obs = np.clip((obs - obs_rms.mean) / np.sqrt(obs_rms.var + 1e-8), -10, 10)
-                act, _, new_state, _ = policy.step(obs=obs, deterministic=False)
+                act, _, new_state, _ = policy.step(obs=obs[None, :], deterministic=False)
                 act = act[0]
             actions.append(act)
             new_states.append(new_state)
