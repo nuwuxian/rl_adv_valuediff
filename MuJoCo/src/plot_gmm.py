@@ -185,11 +185,6 @@ def bar_chart(envs, savefile=None):
 
     # Make colors consistent with previous figures
     standard_cycle = list(plt.rcParams["axes.prop_cycle"])
-    palette = {
-        label: standard_cycle[CYCLE_ORDER.index(label)]["color"]
-        for label in PRETTY_OPPONENTS.values()
-    }
-
     # palette['Our'] = 'red'
     # palette['Ucb'] = '#0165FC'
     # palette['ZooT'] = '#2ca02c'
