@@ -241,7 +241,7 @@ if __name__ == '__main__':
     activation_paths['our'] = args.dir + '/activations_our_adv.npy'
     activation_paths['ucb'] = args.dir + '/activations_ucb_adv.npy'
 
-    density_fitter(activation_paths, args.output_dir, 'ucb', n_components=25, type='full')
+    density_fitter(activation_paths, args.output_dir, 'ucb', n_components=20, type='full')
 
     styles = ["paper", "density_twocol"]
     sns.set_style("whitegrid")
