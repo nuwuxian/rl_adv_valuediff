@@ -27,6 +27,13 @@
 
 - After training is done, the trained models and tensorboard logs will be saved into the ```~/rl_newloss/MuJoCo/victim-agent-zoo``` folder with different runs in different folders named by the starting time.
 
+## Evaluation:
+- Run ```python eval.py --env=<env_id> --pi0_type=<pi0_type> --pi0_nn_type=<pi0_nn_type> --pi0_path=<pi0_path> --pi0_norm_path=<pi0_norm_path> --pi1_type=<pi1_type> --pi1_nn_type=<pi1_nn_type> --pi1_path=<pi1_path> --pi1_norm_path=<pi1_norm_path>``` to do evaluations.
+
+
+- Run ```python test_masked_victim.py --env=<env_id> --opp_path=<path-to-opponent> --vic_path=<path-to-victim> --norm_path=<path-to-opponent-obs_nms> --vic_mask=<True>``` to let the opponents play with the masked victims.
+
+
 ## Visualizing the winning rate of the adversarial agents / retrained victim agents:
   - Run ```python plot.py --log_dir XX --out_dir @@``` XX refers to the path to the adversary training results, e.g., ```~/rl_newloss/MuJoCo/agent-zoo```; @@ refers to the output folder.
   - Run ```python retrain_plot.py --log_dir XX --out_dir @@``` XX refers to the path to the adversary retraining results, e.g., ```~/rl_newloss/MuJoCo/victim-agent-zoo```; @@ refers to the output folder.
@@ -68,6 +75,9 @@ for i in $(seq 0 20);
     do python -m bin.adv_mixretrain_ppo --job_name=actor --save_dir XX --learner_ip localhost & 
 done;
 ```
+
+## Evaluation:
+Run ```python -m bin.evaluate_vs_rl.py --model_path=<model_path> --victim_path=<victim_path>``` to do evaluations.
 
 ## Visualizing the winning rate of the adversarial agents or retrained victim agents:
 - Run ```python plot.py --log_dir XX --out_dir @@``` XX refers to the path to the the adversary training results; @@ refers to the output folder.

@@ -20,15 +20,17 @@ def run(config):
 
     if ENV_NAME in ['multicomp/YouShallNotPassHumans-v0', "multicomp/RunToGoalAnts-v0", "multicomp/RunToGoalHumans-v0"]:
         policy_type="mlp"
+        vic_id = 1
     else:
         policy_type="lstm"
-
+        vic_id = 0
     env = gym.make(ENV_NAME)
 
     vic_id = config.vic_id
     vic_mask = config.vic_mask
     epsilon = config.epsilon
     clip_obs = config.clip_obs
+
 
     # masked observation
     if vic_mask:
@@ -150,25 +152,21 @@ if __name__ == "__main__":
     # YouShallNotPass
     # p.add_argument("--opp-path", default="../adv-agent/our_attack/you/model.pkl", type=str)
     # p.add_argument("--vic_path", default="../multiagent-competition/agent-zoo/you-shall-not-pass/agent2_parameters-v1.pkl", type=str)
-    # p.add_argument("--vic_id", default=1, type=int)
     # p.add_argument("--norm_path", default="../adv-agent/our_attack/you/obs_rms.pkl", type=str)
 
     # KickAndDefend
     # p.add_argument("--opp-path", default="../adv-agent/our_attack/kick/model.pkl", type=str)
     # p.add_argument("--vic_path", default="../multiagent-competition/agent-zoo/kick-and-defend/kicker/agent1_parameters-v1.pkl", type=str)
-    # p.add_argument("--vic_id", default=0, type=int)
     # p.add_argument("--norm_path", default="../adv-agent/our_attack/kick/obs_rms.pkl", type=str)
 
     # SumoHumans
     p.add_argument("--opp-path", default="../adv-agent/our_attack/humans/model.pkl", type=str)
     p.add_argument("--vic_path", default="../multiagent-competition/agent-zoo/sumo/humans/agent_parameters-v3.pkl", type=str)
-    p.add_argument("--vic_id", default=0, type=int)
     p.add_argument("--norm_path", default="../adv-agent/our_attack/humans/obs_rms.pkl", type=str)
 
     # SumoAnts
     # p.add_argument("--opp-path", default="../adv-agent/our_attack/ants/model.pkl", type=str)
     # p.add_argument("--vic_path", default="../multiagent-competition/agent-zoo/sumo/ants/agent_parameters-v1.pkl", type=str)
-    # p.add_argument("--vic_id", default=0, type=int)
     # p.add_argument("--norm_path", default="../adv-agent/our_attack/ants/obs_rms.pkl", type=str)
 
     p.add_argument("--vic_mask", default=True, type=bool)
