@@ -51,3 +51,6 @@ Refer to the ```https://github.com/Tencent/PySC2TencentExtension``` to install t
 - Run the ```python -m bin.adv_mixretrain_ppo --job_name learner &``` to start the learner. Run the 
 ```for i in $(seq 0 20); do python -m bin.adv_mixretrain_ppo --job_name=actor --learner_ip local host & done;```
 to start the actor.
+
+## Visualizing the winning rate of the adversarial agents or retrained victim agents:
+  Run “python plot.py/plot_victim.py --log_dir XX --out_dir @@” XX refers to the path to the results; @@ refers to the output folder.
