@@ -46,7 +46,7 @@ Refer to the ```https://github.com/Tencent/PySC2TencentExtension``` to install t
 - Our Attack: Run the ```python -m bin.advtrain_ppo --job_name learner --vic_coef_init -1 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX &``` to start the learner. Run the ```for i in $(seq 0 20); do python -m bin.advtrain_ppo --job_name=actor --vic_coef_init 0 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX --learner_ip local host & done;``` to start the actor. XX refers to the path to the results.
 
 ## Adv_retrain:
-- Modify the 51, 52, 83 lines of file ```bin/adv_mixretrain_ppo.py``` to set the adversary agent path, norm agent path, and victim path separately.
+- Modify the 51, 52, 83 lines of file ```bin/adv_mixretrain_ppo.py``` to set the adversarial agent path, norm agent path, and victim path separately.
 
 - Run the ```python -m bin.adv_mixretrain_ppo --job_name learner &``` to start the learner. Run the 
 ```for i in $(seq 0 20); do python -m bin.adv_mixretrain_ppo --job_name=actor --learner_ip local host & done;```
