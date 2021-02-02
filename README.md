@@ -14,7 +14,7 @@
   - Put ```MuJoCo/gym_compete.zip``` into ```anaconda3/envs/mujoco/lib/python3.X/site-packages/``` and run ```unzip gym_compete.zip```. You will see two folders ```gym_compete``` and ```gym_compete-0.0.1.dist-info```.
 
 ## Adv_train:
-- Existing Attack: Run the ```python adv_train.py --env=<env_id> --vic_coef_init=0 --adv_coef_init=-1 ```
+- Existing Attack: Run the ```python adv_train.py --env=<env_id> --vic_agt_id=<vic_agt_id> --vic_coef_init=0 --adv_coef_init=-1 ```
 
 - Our Attack: Run the  ```python adv_train.py --env=<env_id> --vic_coef_init=1 --adv_coef_init=-1```
 
