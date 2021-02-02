@@ -96,15 +96,15 @@ done;
 ## Evaluation:
 Run ```python -m bin.evaluate_vs_rl.py --model_path=<path-of-the-opponent-model> --victim_path=<path-of-the-victim-model>``` to play against an opponent with a victim.
 
-<span style="color:red"> Playing an opponent agent with a masked victim:</span> 
+*Playing an opponent agent with a masked victim:*
 
 
 ## Visualizing the winning rate of the adversarial agents or retrained victim agents:
 - Run ```python plot.py --log_dir <path to the adversary attack results> --out_dir <output folder>```.
 - Run ```python plot_victim.py --log_dir <path to the robustifying results> --out_dir <output folder>```.
 
-## Visualizing the GMM average likelihood / t-SNE:
-  - Run ``` XXXXX``` to collect the victim activations when playing against different opponents. 
+## *Visualizing the GMM average likelihood / t-SNE:*
+  - *Run ``` XXXXX``` to collect the victim activations when playing against different opponents.* 
   
-  - To generate the t-SNE visualization results, run ```python plot_tsne.py --dir <path-to-victim-activations> --output_dir <output-folder>```. To generate the GMM visualization results, run ```python plot_gmm.py --dir <path-to-victim-activations> --output_dir <output-folder>```.
+  - *To generate the t-SNE visualization results, run ```python plot_tsne.py --dir <path-to-victim-activations> --output_dir <output-folder>```. To generate the GMM visualization results, run ```python plot_gmm.py --dir <path-to-victim-activations> --output_dir <output-folder>```.*
 
