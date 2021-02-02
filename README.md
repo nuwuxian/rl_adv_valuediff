@@ -43,7 +43,7 @@
 Refer to the ```https://github.com/Tencent/PySC2TencentExtension``` to install the StarCraft environment. Then, run the ```pip install -r requirments.txt``` to finalize the environment.
 
 ## Adv_train:
-- Existing Attack: Run the ```python -m bin.advtrain_ppo --job_name learner --vic_coef_init 0 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX &``` to start the learner. To start the actor, run 
+Existing Attack: Run the ```python -m bin.advtrain_ppo --job_name learner --vic_coef_init 0 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX &``` to start the learner. To start the actor, run 
 ``` bash
 for i in $(seq 0 20); 
     do python -m bin.advtrain_ppo --job_name=actor --vic_coef_init 0 -- adv_coef_init 1 \
@@ -51,7 +51,7 @@ for i in $(seq 0 20);
 done;
 ``` 
 
-- Our Attack: Run the ```python -m bin.advtrain_ppo --job_name learner --vic_coef_init -1 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX &``` to start the learner. To start the actor, run
+Our Attack: Run the ```python -m bin.advtrain_ppo --job_name learner --vic_coef_init -1 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX &``` to start the learner. To start the actor, run
 ``` bash
 for i in $(seq 0 20); 
     do python -m bin.advtrain_ppo --job_name=actor --vic_coef_init -1 -- adv_coef_init 1 \
@@ -60,9 +60,9 @@ done;
 ``` 
 
 ## Adv_retrain:
-- Modify the 51, 52, 83 lines of file ```bin/adv_mixretrain_ppo.py``` to set the adversarial agent path, norm agent path, and victim path separately.
+Modify the 51, 52, 83 lines of file ```bin/adv_mixretrain_ppo.py``` to set the adversarial agent path, norm agent path, and victim path separately.
 
-- Run the ```python -m bin.adv_mixretrain_ppo --job_name learner --save_dir XX &``` to start the learner. To start the actor, run
+Run the ```python -m bin.adv_mixretrain_ppo --job_name learner --save_dir XX &``` to start the learner. To start the actor, run
 ``` bash 
 for i in $(seq 0 20); 
     do python -m bin.adv_mixretrain_ppo --job_name=actor --save_dir XX --learner_ip localhost & 
