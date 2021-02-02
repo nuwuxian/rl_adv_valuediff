@@ -148,28 +148,28 @@ if __name__ == "__main__":
     p.add_argument("--env", default=5, type=int)
 
     # YouShallNotPass
-    # p.add_argument("--opp-path", default="../adv-agent/adv_attack/you/model.pkl", type=str)
+    # p.add_argument("--opp-path", default="../adv-agent/our_attack/you/model.pkl", type=str)
     # p.add_argument("--vic_path", default="../multiagent-competition/agent-zoo/you-shall-not-pass/agent2_parameters-v1.pkl", type=str)
     # p.add_argument("--vic_id", default=1, type=int)
-    # p.add_argument("--norm_path", default="../adv-agent/ucb_attack/you/obs_rms.pkl", type=str)
+    # p.add_argument("--norm_path", default="../adv-agent/our_attack/you/obs_rms.pkl", type=str)
 
     # KickAndDefend
-    # p.add_argument("--opp-path", default="../adv-agent/adv_attack/kick/model.pkl", type=str)
+    # p.add_argument("--opp-path", default="../adv-agent/our_attack/kick/model.pkl", type=str)
     # p.add_argument("--vic_path", default="../multiagent-competition/agent-zoo/kick-and-defend/kicker/agent1_parameters-v1.pkl", type=str)
     # p.add_argument("--vic_id", default=0, type=int)
-    # p.add_argument("--norm_path", default="../adv-agent/adv_attack/kick/obs_rms.pkl", type=str)
+    # p.add_argument("--norm_path", default="../adv-agent/our_attack/kick/obs_rms.pkl", type=str)
 
     # SumoHumans
-    p.add_argument("--opp-path", default="../adv-agent/adv_attack/humans/model.pkl", type=str)
+    p.add_argument("--opp-path", default="../adv-agent/our_attack/humans/model.pkl", type=str)
     p.add_argument("--vic_path", default="../multiagent-competition/agent-zoo/sumo/humans/agent_parameters-v3.pkl", type=str)
     p.add_argument("--vic_id", default=0, type=int)
-    p.add_argument("--norm_path", default="../adv-agent/adv_attack/humans/obs_rms.pkl", type=str)
+    p.add_argument("--norm_path", default="../adv-agent/our_attack/humans/obs_rms.pkl", type=str)
 
     # SumoAnts
-    # p.add_argument("--opp-path", default="../adv-agent/adv_attack/ants/model.pkl", type=str)
+    # p.add_argument("--opp-path", default="../adv-agent/our_attack/ants/model.pkl", type=str)
     # p.add_argument("--vic_path", default="../multiagent-competition/agent-zoo/sumo/ants/agent_parameters-v1.pkl", type=str)
     # p.add_argument("--vic_id", default=0, type=int)
-    # p.add_argument("--norm_path", default="../adv-agent/adv_attack/ants/obs_rms.pkl", type=str)
+    # p.add_argument("--norm_path", default="../adv-agent/our_attack/ants/obs_rms.pkl", type=str)
 
     p.add_argument("--vic_mask", default=True, type=bool)
     p.add_argument("--max-episodes", default=100, help="max number of matches", type=int)
