@@ -40,7 +40,7 @@
 # Reproducing the results on the StarCraft Game:
 
 ## Install StarCraft environment:
-Refer to the ```https://github.com/Tencent/PySC2TencentExtension``` to install the StarCraft environment. Then, run the ```pip install -r requirments.txt``` to finalize the environment.
+First, installing the StarCraft environment by pulling and installing the repo from: https://github.com/Tencent/PySC2TencentExtension. Then, run the ```pip install -r requirments.txt``` to install the required packages.
 
 ## Adv_train:
 Existing Attack: Run the ```python -m bin.advtrain_ppo --job_name learner --vic_coef_init 0 -- adv_coef_init 1 -- init_model_path '../normal-agent/checkpoint-100000' --save_dir XX &``` to start the learner. To start the actor, run 
