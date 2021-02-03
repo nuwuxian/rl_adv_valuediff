@@ -96,8 +96,8 @@ done;
 ## Evaluation:
 Run ```python -m bin.evaluate_vs_rl.py --model_path=<path-of-the-opponent-model> --victim_path=<path-of-the-victim-model> --mask_victim=False``` to play against an opponent with a victim.
 
-Playing an opponent agent with a masked victim:
-Run ```python -m bin.evaluate_vs_rl.py --model_path=<path-of-the-opponent-model> --victim_path=<path-of-the-victim-model> --mask_victim=True``` to play against an opponent with a victim.
+Playing an opponent agent with a masked victim:  
+Run ```python -m bin.evaluate_vs_rl.py --model_path=<path-of-the-opponent-model> --victim_path=<path-of-the-victim-model> --mask_victim=True``` to play against an opponent with a masked victim.
 
 ## Visualizing the winning rate of the adversarial agents or retrained victim agents:
 - Run ```python plot.py --log_dir <path to the adversary attack results> --out_dir <output folder>```.
