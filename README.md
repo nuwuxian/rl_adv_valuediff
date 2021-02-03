@@ -94,17 +94,17 @@ done;
 ```
 
 ## Evaluation:
-Run ```python -m bin.evaluate_vs_rl.py --model_path=<path-of-the-opponent-model> --victim_path=<path-of-the-victim-model>``` to play against an opponent with a victim.
+Run ```python -m bin.evaluate_vs_rl.py --model_path=<path-of-the-opponent-model> --victim_path=<path-of-the-victim-model> --mask_victim=False``` to play against an opponent with a victim.
 
-*Playing an opponent agent with a masked victim:*
-
+Playing an opponent agent with a masked victim:
+Run ```python -m bin.evaluate_vs_rl.py --model_path=<path-of-the-opponent-model> --victim_path=<path-of-the-victim-model> --mask_victim=True``` to play against an opponent with a victim.
 
 ## Visualizing the winning rate of the adversarial agents or retrained victim agents:
 - Run ```python plot.py --log_dir <path to the adversary attack results> --out_dir <output folder>```.
 - Run ```python plot_victim.py --log_dir <path to the robustifying results> --out_dir <output folder>```.
 
-## *Visualizing the GMM average likelihood / t-SNE:*
-  - *Run ``` XXXXX``` to collect the victim activations when playing against different opponents.* 
+## Visualizing the GMM average likelihood / t-SNE:
+  - Run ``` python -m bin.generate_activations.py --model_path=<path-of-the-opponent-model> --model_type=<type-of-the-opponent> --victim_path=<path-of-the-victim-model> --out_path=<output folder>``` to collect the victim activations when playing against different opponents.
   
-  - *To generate the t-SNE visualization results, run ```python plot_tsne.py --dir <path-to-victim-activations> --output_dir <output-folder>```. To generate the GMM visualization results, run ```python plot_gmm.py --dir <path-to-victim-activations> --output_dir <output-folder>```.*
+  - To generate the t-SNE visualization results, run ```python plot_tsne.py --dir <path-to-victim-activations> --output_dir <output-folder>```. To generate the GMM visualization results, run ```python plot_gmm.py --dir <path-to-victim-activations> --output_dir <output-folder>```.
 
