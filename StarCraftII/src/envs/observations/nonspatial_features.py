@@ -45,8 +45,9 @@ class ScoreFeature(object):
 
 class UnitTypeCountFeature(object):
 
-  def __init__(self, type_list, use_regions=False):
+  def __init__(self, type_list, use_regions=False, mask_opponent=False):
     self._type_list = type_list
+    self._mask_opponent = mask_opponent
     if use_regions:
       self._regions = [(0, 0, 200, 176),
                        (0, 88, 80, 176),
@@ -82,6 +83,10 @@ class UnitTypeCountFeature(object):
                    if u.int_attr.alliance == ALLY_TYPE.ENEMY.value]
     self_features = self._get_counts(self_units)
     enemy_features = self._get_counts(enemy_units)
+
+    if self._mask_opponent:
+      enemy_features = np.array([0 for _ in self._type_list], dtype=np.float32)
+
     features = np.concatenate((self_features, enemy_features))
 
     scaled_features = features / 20
@@ -105,7 +110,7 @@ class UnitTypeCountFeature(object):
 
 class UnitStatCountFeature(object):
 
-  def __init__(self, use_regions=False):
+  def __init__(self, use_regions=False, mask_opponent=False):
     if use_regions:
       self._regions = [(0, 0, 200, 176),
                        (0, 88, 80, 176),
@@ -121,6 +126,8 @@ class UnitStatCountFeature(object):
       self._regions = [(0, 0, 200, 176)]
     self._regions_flipped = [self._regions[0]] + [
         self._regions[10 - i] for i in range(1, len(self._regions))]
+
+    self._mask_opponent = mask_opponent
 
   def features(self, observation, need_flip=False):
     feature_list = []
@@ -145,6 +152,13 @@ class UnitStatCountFeature(object):
     enemy_air_units = [u for u in enemy_units if u.bool_attr.is_flying]
     self_ground_units = [u for u in self_units if not u.bool_attr.is_flying]
     enemy_ground_units = [u for u in enemy_units if not u.bool_attr.is_flying]
+
+    # mask opponent
+    if self._mask_opponent:
+      enemy_units = []
+      enemy_combats = []
+      enemy_ground_units = []
+      enemy_air_units = []
 
     features = np.array([len(self_units),
                          len(self_combats),

@@ -24,7 +24,7 @@ from envs.observations.nonspatial_features import ActionSeqFeature
 class ZergObservationWrapper(gym.Wrapper):
 
   def __init__(self, env, use_spatial_features=False, use_game_progress=True,
-               action_seq_len=8, use_regions=False):
+               action_seq_len=8, use_regions=False, mask_opponent=False):
     super(ZergObservationWrapper, self).__init__(env)
     # TODO: multiple observation space
     #assert isinstance(env.observation_space, PySC2RawObservation)
@@ -57,7 +57,8 @@ class ZergObservationWrapper(gym.Wrapper):
                    UNIT_TYPE.ZERG_OVERSEER.value,
                    #UNIT_TYPE.ZERG_CHANGELING.value,
                    UNIT_TYPE.ZERG_QUEEN.value],
-        use_regions=use_regions
+        use_regions=use_regions,
+        mask_opponent=mask_opponent
     )
     self._building_count_feature = UnitTypeCountFeature(
         type_list=[UNIT_TYPE.ZERG_SPINECRAWLER.value,
@@ -78,10 +79,12 @@ class ZergObservationWrapper(gym.Wrapper):
                    UNIT_TYPE.ZERG_LAIR.value,
                    UNIT_TYPE.ZERG_HIVE.value,
                    UNIT_TYPE.ZERG_GREATERSPIRE.value],
-        use_regions=False
+        use_regions=False,
+        mask_opponent=mask_opponent
+
     )
     self._unit_stat_count_feature = UnitStatCountFeature(
-        use_regions=use_regions)
+        use_regions=use_regions, mask_opponent=mask_opponent)
     self._player_feature = PlayerFeature()
     self._score_feature = ScoreFeature()
     self._worker_feature = WorkerFeature()

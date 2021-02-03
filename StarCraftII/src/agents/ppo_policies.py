@@ -23,11 +23,17 @@ class MlpPolicy(object):
             MASK = tf.placeholder(
                 shape=(nbatch,) + mask_space.shape, dtype=tf.float32, name="mask")
 
+        ff_out = []
+
         with tf.variable_scope(scope_name, reuse=reuse):
             x = tf.layers.flatten(X)
             pi_h1 = tf.tanh(fc(x, 'pi_fc1', nh=128, init_scale=np.sqrt(2)))
+            ff_out.append(pi_h1)
             pi_h2 = tf.tanh(fc(pi_h1, 'pi_fc2', nh=128, init_scale=np.sqrt(2)))
+            ff_out.append(pi_h2)
             pi_h3 = tf.tanh(fc(pi_h2, 'pi_fc3', nh=128, init_scale=np.sqrt(2)))
+            ff_out.append(pi_h3)
+
             vf_h1 = tf.tanh(fc(x, 'vf_fc1', nh=128, init_scale=np.sqrt(2)))
             vf_h2 = tf.tanh(fc(vf_h1, 'vf_fc2', nh=128, init_scale=np.sqrt(2)))
             vf_h3 = tf.tanh(fc(vf_h2, 'vf_fc3', nh=128, init_scale=np.sqrt(2)))
@@ -39,16 +45,24 @@ class MlpPolicy(object):
                 pi_logit -= (1 - MASK) * 1e30
             self.pd = CategoricalPd(pi_logit)
 
+        self.policy_ff_acts = tf.concat(ff_out, axis=-1)
         action = self.pd.sample()
         neglogp = self.pd.neglogp(action)
         self.initial_state = None
 
         def step(ob, *_args, **_kwargs):
-            if isinstance(ac_space, MaskDiscrete):
-                a, v, nl = sess.run([action, vf, neglogp], {X:ob[0], MASK:ob[-1]})
+            if len(_args) != 0:
+                if isinstance(ac_space, MaskDiscrete):
+                    a, v, nl = sess.run([action, vf, neglogp], {X:ob[0], MASK:ob[-1]})
+                else:
+                    a, v, nl = sess.run([action, vf, neglogp], {X:ob})
+                return a, v, self.initial_state, nl
             else:
-                a, v, nl = sess.run([action, vf, neglogp], {X:ob})
-            return a, v, self.initial_state, nl
+                if isinstance(ac_space, MaskDiscrete):
+                    a, ff_acts = sess.run([action, self.policy_ff_acts], {X:ob[0], MASK:ob[-1]})
+                else:
+                    a, ff_acts = sess.run([action, self.policy_ff_acts], {X:ob})
+                return a, ff_acts
 
         def value(ob, *_args, **_kwargs):
             if isinstance(ac_space, MaskDiscrete):

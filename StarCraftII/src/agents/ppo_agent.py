@@ -401,6 +401,7 @@ class PPOLearner(object):
       receiver.send_pyobj(self._model_params)
 
 
+## used for evaluation
 class PPOAgent(object):
 
   def __init__(self, env, policy, scope_name, model_path=None):
@@ -421,11 +422,10 @@ class PPOAgent(object):
     self._done = False
 
   def act(self, observation):
-      action, value, self._state, _ = self._model.step(
-          transform_tuple(observation, lambda x: np.expand_dims(x, 0)),
-          self._state,
-          np.expand_dims(self._done, 0))
-      return action[0]
+      # no args, only take observations as input
+      action, ff_acts = self._model.step(
+          transform_tuple(observation, lambda x: np.expand_dims(x, 0)))
+      return action[0], ff_acts[0]
 
   def reset(self):
     self._state = self._model.initial_state
