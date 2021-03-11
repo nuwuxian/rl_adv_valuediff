@@ -213,7 +213,6 @@ class USENIX_PPO2(ActorCriticRLModel):
                                                              name="action_opp_next_ph")
                     self.obs_opp_next_ph = tf.placeholder(dtype=tf.float32, shape=train_model.obs_ph.shape,
                                                           name="obs_opp_next_ph")
-                    self.stochastic_ph = tf.placeholder(tf.bool, (), name="stochastic")
                     self.ratio_ph = tf.placeholder(tf.float32, [], name="change_action_state_ratio_ph")
 
                     action_ph_noise = train_model.deterministic_action
@@ -375,8 +374,7 @@ class USENIX_PPO2(ActorCriticRLModel):
                 self.summary = tf.summary.merge_all()
 
     def _train_step(self, learning_rate, cliprange, obs, returns, masks, actions, values, neglogpacs,
-                    a_opp_next, o_opp_next, attention, is_stochastic, ratio,
-                    update, writer, states=None):
+                    a_opp_next, o_opp_next, attention, ratio=1.0, update, writer, states=None):
         """
         Training of PPO2 Algorithm
 
@@ -407,7 +405,7 @@ class USENIX_PPO2(ActorCriticRLModel):
                       self.old_neglog_pac_ph: neglogpacs, self.old_vpred_ph: values,
 
                       self.action_opp_next_ph: a_opp_next, self.obs_opp_next_ph: o_opp_next,
-                      self.stochastic_ph: is_stochastic, self.ratio_ph: ratio, self.attention: attention,
+                      self.ratio_ph: ratio, self.attention: attention,
             }
 
             if states is not None:
@@ -429,7 +427,7 @@ class USENIX_PPO2(ActorCriticRLModel):
                       self.old_neglog_pac_ph: neglogpacs, self.old_vpred_ph: values,
 
                       self.action_opp_next_ph: a_opp_next, self.obs_opp_next_ph: o_opp_next,
-                      self.stochastic_ph: is_stochastic, self.ratio_ph: ratio, self.attention: attention
+                      self.ratio_ph: ratio, self.attention: attention
                       }
             if states is not None:
                 td_map[self.train_model.states_ph] = states
@@ -498,45 +496,8 @@ class USENIX_PPO2(ActorCriticRLModel):
                 attention = self.calculate_attention(obs_oppo=obs_opp_ph, action_oppo=action_oppo_ph, \
                                         exp_test=exp_test, black_box_att=self.black_box_att, exp_method=self.exp_method)
 
-                is_stochastic = False
                 ep_info_buf.extend(ep_infos)
                 mb_loss_vals = []
-
-                # if states is None:  # nonrecurrent version
-                #     update_fac = self.n_batch // self.nminibatches // self.noptepochs + 1
-                #     inds = np.arange(self.n_batch)
-                #     for epoch_num in range(self.noptepochs):
-                #         np.random.shuffle(inds)
-                #         for start in range(0, self.n_batch, batch_size):
-                #             timestep = self.num_timesteps // update_fac + ((self.noptepochs * self.n_batch + epoch_num *
-                #                                                             self.n_batch + start) // batch_size)
-                #             end = start + batch_size
-                #             mbinds = inds[start:end]
-                #             slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                #             slices_hua = (arr[mbinds] for arr in (a_opp_next, o_opp_next, attention))
-                #             mb_loss_vals.append(self._train_step(lr_now, cliprangenow, *slices, *slices_hua,
-                #                                                  is_stochastic=is_stochastic, ratio=self.mix_ratio, writer=writer, update=timestep))
-                #     self.num_timesteps += (self.n_batch * self.noptepochs) // batch_size * update_fac
-                # else:  # recurrent version
-                #     update_fac = self.n_batch // self.nminibatches // self.noptepochs // self.n_steps + 1
-                #     assert self.n_envs % self.nminibatches == 0
-                #     env_indices = np.arange(self.n_envs)
-                #     flat_indices = np.arange(self.n_envs * self.n_steps).reshape(self.n_envs, self.n_steps)
-                #     envs_per_batch = batch_size // self.n_steps
-                #     for epoch_num in range(self.noptepochs):
-                #         np.random.shuffle(env_indices)
-                #         for start in range(0, self.n_envs, envs_per_batch):
-                #             timestep = self.num_timesteps // update_fac + ((self.noptepochs * self.n_envs + epoch_num *
-                #                                                             self.n_envs + start) // envs_per_batch)
-                #             end = start + envs_per_batch
-                #             mb_env_inds = env_indices[start:end]
-                #             mb_flat_inds = flat_indices[mb_env_inds].ravel()
-                #             slices = (arr[mb_flat_inds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                #             slices_hua = (arr[mb_flat_inds] for arr in (a_opp_next, o_opp_next, is_stochastic, attention))
-                #             mb_states = states[mb_env_inds]
-                #             mb_loss_vals.append(self._train_step(lr_now, cliprangenow, *slices, *slices_hua,
-                #                                                  update=timestep, writer=writer, states=mb_states))
-                #     self.num_timesteps += (self.n_envs * self.noptepochs) // envs_per_batch * update_fac
 
                 if states is None: 
                     update_fac = self.n_batch // self.nminibatches // self.noptepochs + 1
