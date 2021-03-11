@@ -19,10 +19,8 @@ from stable_baselines.common.runners import AbstractEnvRunner
 from zoo_utils import load_from_file, setFromFlat, LSTMPolicy, MlpPolicyValue
 from policy import mlp_policy, modeling_state
 from stable_baselines.a2c.utils import total_episode_reward_logger
-from game_utils import infer_next_ph
 from explain_gradient import GradientExp
 from pretrain_model import RL_func, RL_model
-from agent import ZooAgent
 from common import get_zoo_path
 import pdb
 import pickle as pkl
@@ -584,7 +582,7 @@ class USENIX_PPO2(ActorCriticRLModel):
                                 mb_states = states[mb_env_inds]
 
                             mb_loss_vals.append(self._train_step(lr_now, cliprangenow, *slices, *slices_opp,
-                                                                 update=timestep, writer=writer,states=mb_states))
+                                                                 update=timestep, writer=writer, states=mb_states))
                     # self.n_envs * self.noptepochs * self.n_steps 
                     # envs_per_batch: batch_size // self.n_steps
                     # batch_size: self.n_batch // self.nminibatches
@@ -917,3 +915,14 @@ def safe_mean(arr):
     :return: (float)
     """
     return np.nan if len(arr) == 0 else np.mean(arr)
+
+
+def infer_next_ph(ph_2d):
+    '''
+    This is self action/obs at time t+1
+    :param obs_ph:
+    :return:
+    '''
+    ph_2d_next = np.zeros_like(ph_2d)
+    ph_2d_next[:-1, :] = ph_2d[1:, :]
+    return ph_2d_next
