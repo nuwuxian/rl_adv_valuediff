@@ -99,7 +99,6 @@ class USENIX_PPO2(ActorCriticRLModel):
         self.black_box_att = hyper_settings[6]
         self.use_explanation = hyper_settings[7]
         self.masking_attention = False
-        self.agent = None
         self.mix_ratio = mix_ratio
 
         self.retrain_victim = retrain_victim
@@ -687,21 +686,14 @@ class USENIX_PPO2(ActorCriticRLModel):
     # pass the action_oppo
     def calculate_attention(self, obs_oppo, action_oppo=None, exp_test=None, black_box_att=True, exp_method='grad'):
         if self.use_explanation:
-            if black_box_att:
-               assert exp_test != None
-            else:
-               assert self.agent != None
-            if black_box_att:
-                if exp_method == 'grad':
-                   grads = exp_test.grad(obs_oppo)
-                elif exp_method == 'integratedgrad':
-                   grads = exp_test.integratedgrad(obs_oppo)
-                elif exp_method == 'smoothgrad':
-                   grads = exp_test.smoothgrad(obs_oppo)
-                oppo_action = exp_test.output(obs_oppo)
-            else:
-                grads = self.agent.grad(obs_oppo)
-                oppo_action = action_oppo
+            assert exp_test != None 
+            if exp_method == 'grad':
+               grads = exp_test.grad(obs_oppo)
+            elif exp_method == 'integratedgrad':
+               grads = exp_test.integratedgrad(obs_oppo)
+            elif exp_method == 'smoothgrad':
+               grads = exp_test.smoothgrad(obs_oppo)
+            oppo_action = exp_test.output(obs_oppo)
             if not self.masking_attention:
                 if "YouShallNotPassHuman" in self.env_name or \
                         "SumoHumans" in self.env_name or \
@@ -723,8 +715,6 @@ class USENIX_PPO2(ActorCriticRLModel):
                 return grads * self.hyper_weights[5]
         else:
             return np.ones(obs_oppo.shape[0])
-
-
 
 class Runner(AbstractEnvRunner):
     def __init__(self, *, env, model, n_steps, gamma, lam):
