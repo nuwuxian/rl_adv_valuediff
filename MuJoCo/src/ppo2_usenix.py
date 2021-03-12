@@ -15,9 +15,7 @@ from stable_baselines import logger
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
 from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
 from stable_baselines.common.runners import AbstractEnvRunner
-
 from zoo_utils import load_from_file, setFromFlat, LSTMPolicy, MlpPolicyValue
-from policy import mlp_policy, modeling_state
 from stable_baselines.a2c.utils import total_episode_reward_logger
 from explain_gradient import GradientExp
 from pretrain_model import RL_func, RL_model
@@ -188,7 +186,7 @@ class USENIX_PPO2(ActorCriticRLModel):
 
                 # mimic model
                 with tf.variable_scope("mimic_model", reuse=False):
-                     self.mimic_model = RL_model(input_shape=self.observation_space.shape, \
+                     self.mimic_model = RL_model(input_shape=self.observation_space.shape,
                                               out_shape=self.action_space.shape)
                      self.mimic_model.load(self.mimic_model_path + '/model.h5')
 
@@ -373,7 +371,7 @@ class USENIX_PPO2(ActorCriticRLModel):
                 self.summary = tf.summary.merge_all()
 
     def _train_step(self, learning_rate, cliprange, obs, returns, masks, actions, values, neglogpacs,
-                    a_opp_next, o_opp_next, attention, ratio=1.0, update, writer, states=None):
+                    a_opp_next, o_opp_next, attention, ratio=1.0, states=None):
         """
         Training of PPO2 Algorithm
 
@@ -394,7 +392,7 @@ class USENIX_PPO2(ActorCriticRLModel):
         advs = returns - values
         advs = (advs - advs.mean()) / (advs.std() + 1e-8)
 
-        if self.retrain_vicitim:
+        if self.retrain_victim:
             # obs: (n_envs//mini_batch, n_step, obs_shape)
             if issubclass(self.train_model.__class__, LSTMPolicy):
                 obs = obs.reshape((self.n_envs//self.nminibatches, self.n_steps, obs.shape[-1]))
@@ -511,8 +509,7 @@ class USENIX_PPO2(ActorCriticRLModel):
                             slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                             slices_opp = (arr[mbinds] for arr in (a_opp_next, o_opp_next, attention))
 
-                            mb_loss_vals.append(self._train_step(lr_now, cliprangenow, *slices, *slices_opp,
-                                                                 writer=writer, update=timestep))
+                            mb_loss_vals.append(self._train_step(lr_now, cliprangenow, *slices, *slices_opp))
 
                     self.num_timesteps += (self.n_batch * self.noptepochs) // batch_size * update_fac
                 else:
@@ -534,15 +531,12 @@ class USENIX_PPO2(ActorCriticRLModel):
                             slices = (arr[mb_flat_inds] for arr in
                                       (obs, returns, masks, actions, values, neglogpacs))
                             slices_opp = (arr[mbinds] for arr in (a_opp_next, o_opp_next, attention))
-
-                            
-                            if self.retrain_vicitim and not self.use_baseline_policy:
+                            if self.retrain_victim:
                                 mb_states = states[:, mb_env_inds, :]
                             else:
                                 mb_states = states[mb_env_inds]
-
                             mb_loss_vals.append(self._train_step(lr_now, cliprangenow, *slices, *slices_opp,
-                                                                 update=timestep, writer=writer, states=mb_states))
+                                                                 states=mb_states))
                     # self.n_envs * self.noptepochs * self.n_steps 
                     # envs_per_batch: batch_size // self.n_steps
                     # batch_size: self.n_batch // self.nminibatches
@@ -873,3 +867,33 @@ def infer_next_ph(ph_2d):
     ph_2d_next = np.zeros_like(ph_2d)
     ph_2d_next[:-1, :] = ph_2d[1:, :]
     return ph_2d_next
+
+# modeling state transition function
+def modeling_state(action_ph, action_noise, obs_self):
+
+    w1 = tf.Variable(tf.truncated_normal([obs_self.shape.as_list()[1], 32]), name="cur_obs_embed_w1")
+    b1 = tf.Variable(tf.truncated_normal([32]), name="cur_obs_embed_b1")
+    obs_embed = tf.nn.relu((tf.add(tf.matmul(obs_self, w1), b1)), name="cur_obs_embed")
+
+    w2 = tf.Variable(tf.truncated_normal([action_ph.shape.as_list()[1], 4]), name="act_embed_w1")
+    b2 = tf.Variable(tf.truncated_normal([4]), name="act_embed_b1")
+
+    act_embed = tf.nn.relu((tf.add(tf.matmul(action_ph, w2), b2)), name="act_embed")
+    act_embed_noise = tf.nn.relu((tf.add(tf.matmul(action_noise, w2), b2)), name="act_noise_embed")
+
+    obs_act_concat = tf.concat([obs_embed, act_embed], -1, name="obs_act_concat")
+    obs_act_noise_concat = tf.concat([obs_embed, act_embed_noise], -1, name="obs_act_noise_concat")
+
+    w3 = tf.Variable(tf.truncated_normal([36, 64]), name="obs_act_embed_w1")
+    b3 = tf.Variable(tf.truncated_normal([64]), name="obs_act_embed_b1")
+
+    obs_act_embed = tf.nn.relu((tf.add(tf.matmul(obs_act_concat, w3), b3)), name="obs_act_embed")
+    obs_act_noise_embed = tf.nn.relu((tf.add(tf.matmul(obs_act_noise_concat, w3), b3)), name="obs_act_noise_embed")
+
+    w4 = tf.Variable(tf.truncated_normal([64, obs_self.shape.as_list()[1]]), name="obs_oppo_predict_w1")
+    b4 = tf.Variable(tf.truncated_normal([obs_self.shape.as_list()[1]]), name="obs_oppo_predict_b1")
+
+    obs_oppo_predict = tf.nn.tanh(tf.add(tf.matmul(obs_act_embed, w4), b4), name="obs_oppo_predict_part")
+    obs_oppo_predict_noise = tf.nn.tanh(tf.add(tf.matmul(obs_act_noise_embed, w4), b4),
+                                        name="obs_oppo_predict_noise_part")
+    return obs_oppo_predict, obs_oppo_predict_noise

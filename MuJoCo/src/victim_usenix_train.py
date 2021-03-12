@@ -31,10 +31,10 @@ parser.add_argument("--n_games", type=int, default=1) # N_GAME = 8
 parser.add_argument("--vic_agt_id", type=int, default=1)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/ucb/you/model.npy')
+parser.add_argument("--adv_path", type=str, default='/home/xkw5132/wuxian/rl_newloss/MuJoCo/adv-agent/our_attack/you/model.pkl')
 parser.add_argument("--adv_ismlp", type=bool, default=True)
 # adversarial agent's observation norm mean / variance path
-parser.add_argument("--adv_obs_normpath", type=str, default='/Users/Henryguo/Desktop/rl_newloss/MuJoCo/adv_agent-zoo/ucb/you/obs_rms.pkl')
+parser.add_argument("--adv_obs_normpath", type=str, default='/home/xkw5132/wuxian/rl_newloss/MuJoCo/adv-agent/our_attack/you/obs_rms.pkl')
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
 
@@ -46,7 +46,7 @@ parser.add_argument("--nsteps", type=int, default=2048)
 
 parser.add_argument('--x_method', type=str, default='grad')
 
-parser.add_argument('--mimic_model_path', type=str, default=None)
+parser.add_argument('--mimic_model_path', type=str, default='/home/xkw5132/wuxian/rl_newloss/MuJoCo/agent')
 
 # whether use zoo_utils's policy normalization when retrain victim
 parser.add_argument("--load_victim_norm", type=bool, default=True)
@@ -104,8 +104,8 @@ ENT_COEF = 0.00
 
 X_METHOD = args.x_method
 MIMIC_MODEL_PATH = args.mimic_model_path
-
 LOAD_VICTIM_NORM = args.load_victim_norm
+SAVE_VICTIM_TRAJ = False
 
 # callback hyperparameters
 CALLBACK_KEY = 'update'
@@ -199,7 +199,7 @@ if __name__=="__main__":
                        ent_coef=ENT_COEF,  
                        nminibatches=NBATCHES, noptepochs=NEPOCHS, 
                        learning_rate=LR,  verbose=1,  
-                       n_steps=n_steps, gamma=gamma, 
+                       n_steps=NSTEPS, gamma=GAMMA,
                        tensorboard_log=out_dir, 
                        model_saved_loc=out_dir, 
                        env_name=env_name, 

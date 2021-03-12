@@ -11,16 +11,13 @@ from shaping_wrappers import apply_reward_wrapper
 from environment import make_zoo_multi2single_env, Monitor
 from logger import setup_logger
 from ppo2_usenix import USENIX_PPO2
-from value import MlpValue, MlpLstmValue
-# from common import get_zoo_path
-
 
 ##################
 # Hyper-parameters
 ##################
 parser = argparse.ArgumentParser()
 # game env
-parser.add_argument("--env", type=int, default=3)
+parser.add_argument("--env", type=int, default=2)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
@@ -48,7 +45,7 @@ parser.add_argument("--nsteps", type=int, default=2048)
 
 parser.add_argument('--x_method', type=str, default='grad')
 
-parser.add_argument('--mimic_model_path', type=str, default=None)
+parser.add_argument('--mimic_model_path', type=str, default='/home/xkw5132/wuxian/rl_newloss/MuJoCo/agent')
 
 
 # load pretrained agent
@@ -201,7 +198,7 @@ if __name__=="__main__":
                        ent_coef=ENT_COEF,  
                        nminibatches=NBATCHES, noptepochs=NEPOCHS, 
                        learning_rate=LR,  verbose=1,  
-                       n_steps=n_steps, gamma=gamma, 
+                       n_steps=NSTEPS, gamma=GAMMA,
                        tensorboard_log=out_dir, 
                        model_saved_loc=out_dir, 
                        env_name=env_name, 

@@ -275,6 +275,9 @@ class MlpPolicyValue(Policy):
             self.sampled_action = switch(self.stochastic_ph, self.pd.sample(), self.pd.mode())
             self.neglogp = self.proba_distribution.neglogp(self.sampled_action)
             self.policy_proba = [self.proba_distribution.mean, self.proba_distribution.std]
+            # add deterministic action
+            self.deterministic_action = self.pd.mode()
+
 
     def make_feed_dict(self, observation, taken_action):
         return {
@@ -411,6 +414,8 @@ class LSTMPolicy(Policy):
             self.zero_state = np.array(self.zero_state)
             self.state_in_ph = tuple(self.state_in_ph)
             self.state = self.zero_state
+            # add deterministic action
+            self.deterministic_action = self.pd.mode()
 
             for p in self.get_trainable_variables():
                 tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, tf.reduce_sum(tf.square(p)))
