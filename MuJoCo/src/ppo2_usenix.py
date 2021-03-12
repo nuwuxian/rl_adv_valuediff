@@ -702,15 +702,11 @@ class USENIX_PPO2(ActorCriticRLModel):
                 else:
                     grads[:, 0:-15] = 0
                 new_obs_oppo = grads * obs_oppo
-                if black_box_att:
-                    new_oppo_action = exp_test.output(new_obs_oppo)
-                else:
-                    new_oppo_action = self.agent.act(observation=new_obs_oppo)
+                new_oppo_action = exp_test.output(new_obs_oppo)
                 relative_norm = np.max(abs(new_oppo_action - oppo_action), axis=1)
                 # relative_action_norm = np.linalg.norm(new_oppo_action - oppo_action, axis=1)
                 new_scalar = 1.0 / (1 + relative_norm)
                 return new_scalar * self.hyper_weights[5]
-
             else:  # todo now the grads are used to combine weight the observations
                 return grads * self.hyper_weights[5]
         else:
