@@ -42,11 +42,9 @@ parser.add_argument("--lr_sch", type=str, default='linear')
 # number of steps / lstm length should be small
 parser.add_argument("--nsteps", type=int, default=2048)
 
-
 parser.add_argument('--x_method', type=str, default='grad')
 
 parser.add_argument('--mimic_model_path', type=str, default='/home/xkw5132/wuxian/rl_newloss/MuJoCo/agent')
-
 
 # load pretrained agent
 parser.add_argument("--load", type=int, default=0)
