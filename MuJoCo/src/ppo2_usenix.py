@@ -100,7 +100,7 @@ class USENIX_PPO2(ActorCriticRLModel):
         self.mix_ratio = mix_ratio
 
         self.retrain_victim = retrain_victim
-        self.norm_victim = norm_victim
+        self.norm_victim = 'obs'
         self.exp_method = exp_method
 
         self.pretrained_mimic = True
@@ -358,9 +358,8 @@ class USENIX_PPO2(ActorCriticRLModel):
                     elif self.env_name == 'multicomp/SumoAnts-v0' or self.env_name == 'multicomp/SumoHumans-v0':
                         env_path = get_zoo_path(self.env_name, version=self.vic_agt_id)
                     param = load_from_file(param_pkl_path=env_path)
-                    ret_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="victim_policy/retfilter")
                     obs_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="victim_policy/obsfilter")
-                    variables = ret_variable + obs_variable + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="victim_policy")
+                    variables = obs_variable + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="victim_policy")
                     setFromFlat(variables, param, self.sess)
 
                 # load victim param
