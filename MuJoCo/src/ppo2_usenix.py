@@ -188,8 +188,8 @@ class USENIX_PPO2(ActorCriticRLModel):
                 with tf.variable_scope("mimic_model", reuse=False):
                      self.mimic_model = RL_model(input_shape=self.observation_space.shape,
                                               out_shape=self.action_space.shape)
-                     #self.mimic_model.load(self.mimic_model_path + '/model.h5')
-
+                     self.mimic_model.load(self.mimic_model_path + '/model.h5')
+                
                 with tf.variable_scope("loss", reuse=False):
 
                     if self.retrain_victim:
@@ -367,11 +367,10 @@ class USENIX_PPO2(ActorCriticRLModel):
                     obs_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="victim_policy/obsfilter")
                     variables = obs_variable + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="victim_policy")
                     setFromFlat(variables, param, self.sess)
-
                 # load victim param
-                # victim_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, "loss/victim_param")
-                # param = load_from_file(param_pkl_path=self.mimic_model_path + '/model.pkl')
-                # setFromFlat(victim_variable, param, sess=self.sess)
+                victim_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, "loss/victim_param")
+                param = load_from_file(param_pkl_path=self.mimic_model_path + '/model.pkl')
+                setFromFlat(victim_variable, param, sess=self.sess)
                     
                 self.summary = tf.summary.merge_all()
 
