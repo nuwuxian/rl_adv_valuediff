@@ -188,7 +188,7 @@ class USENIX_PPO2(ActorCriticRLModel):
                 with tf.variable_scope("mimic_model", reuse=False):
                      self.mimic_model = RL_model(input_shape=self.observation_space.shape,
                                               out_shape=self.action_space.shape)
-                     self.mimic_model.load(self.mimic_model_path + '/model.h5')
+                     #self.mimic_model.load(self.mimic_model_path + '/model.h5')
 
                 with tf.variable_scope("loss", reuse=False):
 
@@ -205,11 +205,17 @@ class USENIX_PPO2(ActorCriticRLModel):
                     self.learning_rate_ph = tf.placeholder(tf.float32, [], name="learning_rate_ph")
                     self.clip_range_ph = tf.placeholder(tf.float32, [], name="clip_range_ph")
 
-
                     self.action_opp_next_ph = tf.placeholder(dtype=tf.float32, shape=self.action_ph.shape,
                                                              name="action_opp_next_ph")
-                    self.obs_opp_next_ph = tf.placeholder(dtype=tf.float32, shape=train_model.obs_ph.shape,
-                                                          name="obs_opp_next_ph")
+
+                    # obs_opp_next_ph
+                    if self.retrain_victim:
+                        self.obs_opp_next_ph = tf.placeholder(dtype=tf.float32, shape=[None, train_model.obs_ph.shape[-1]],
+                                                              name="obs_opp_next_ph")
+                    else:
+                        self.obs_opp_next_ph = tf.placeholder(dtype=tf.float32, shape=train_model.obs_ph.shape,
+                                                              name="obs_opp_next_ph")
+
                     self.ratio_ph = tf.placeholder(tf.float32, [], name="change_action_state_ratio_ph")
 
                     action_ph_noise = train_model.deterministic_action
@@ -363,9 +369,9 @@ class USENIX_PPO2(ActorCriticRLModel):
                     setFromFlat(variables, param, self.sess)
 
                 # load victim param
-                victim_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, "loss/victim_param")
-                param = load_from_file(param_pkl_path=self.mimic_model_path + '/model.pkl')
-                setFromFlat(victim_variable, param, sess=self.sess)
+                # victim_variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, "loss/victim_param")
+                # param = load_from_file(param_pkl_path=self.mimic_model_path + '/model.pkl')
+                # setFromFlat(victim_variable, param, sess=self.sess)
                     
                 self.summary = tf.summary.merge_all()
 
@@ -529,7 +535,7 @@ class USENIX_PPO2(ActorCriticRLModel):
                             mb_flat_inds = flat_indices[mb_env_inds].ravel()
                             slices = (arr[mb_flat_inds] for arr in
                                       (obs, returns, masks, actions, values, neglogpacs))
-                            slices_opp = (arr[mbinds] for arr in (a_opp_next, o_opp_next, attention))
+                            slices_opp = (arr[mb_flat_inds] for arr in (a_opp_next, o_opp_next, attention))
                             if self.retrain_victim:
                                 mb_states = states[:, mb_env_inds, :]
                             else:
@@ -869,12 +875,18 @@ def infer_next_ph(ph_2d):
 
 # modeling state transition function
 def modeling_state(action_ph, action_noise, obs_self):
+    # re-shape obs_self
+    obs_dim = obs_self.shape.as_list()[-1]
+    act_dim = action_noise.shape.as_list()[-1]
 
-    w1 = tf.Variable(tf.truncated_normal([obs_self.shape.as_list()[1], 32]), name="cur_obs_embed_w1")
+    if len(obs_self.shape.as_list()) > 2:
+        obs_self = tf.reshape(obs_self, [-1, obs_dim])
+
+    w1 = tf.Variable(tf.truncated_normal([obs_dim, 32]), name="cur_obs_embed_w1")
     b1 = tf.Variable(tf.truncated_normal([32]), name="cur_obs_embed_b1")
     obs_embed = tf.nn.relu((tf.add(tf.matmul(obs_self, w1), b1)), name="cur_obs_embed")
 
-    w2 = tf.Variable(tf.truncated_normal([action_ph.shape.as_list()[1], 4]), name="act_embed_w1")
+    w2 = tf.Variable(tf.truncated_normal([act_dim, 4]), name="act_embed_w1")
     b2 = tf.Variable(tf.truncated_normal([4]), name="act_embed_b1")
 
     act_embed = tf.nn.relu((tf.add(tf.matmul(action_ph, w2), b2)), name="act_embed")
@@ -889,10 +901,11 @@ def modeling_state(action_ph, action_noise, obs_self):
     obs_act_embed = tf.nn.relu((tf.add(tf.matmul(obs_act_concat, w3), b3)), name="obs_act_embed")
     obs_act_noise_embed = tf.nn.relu((tf.add(tf.matmul(obs_act_noise_concat, w3), b3)), name="obs_act_noise_embed")
 
-    w4 = tf.Variable(tf.truncated_normal([64, obs_self.shape.as_list()[1]]), name="obs_oppo_predict_w1")
-    b4 = tf.Variable(tf.truncated_normal([obs_self.shape.as_list()[1]]), name="obs_oppo_predict_b1")
+    w4 = tf.Variable(tf.truncated_normal([64, obs_dim]), name="obs_oppo_predict_w1")
+    b4 = tf.Variable(tf.truncated_normal([obs_dim]), name="obs_oppo_predict_b1")
 
     obs_oppo_predict = tf.nn.tanh(tf.add(tf.matmul(obs_act_embed, w4), b4), name="obs_oppo_predict_part")
     obs_oppo_predict_noise = tf.nn.tanh(tf.add(tf.matmul(obs_act_noise_embed, w4), b4),
                                         name="obs_oppo_predict_noise_part")
+
     return obs_oppo_predict, obs_oppo_predict_noise
