@@ -206,7 +206,8 @@ if __name__=="__main__":
                        mimic_model_path=MIMIC_MODEL_PATH,
                        exp_method=X_METHOD,
                        retrain_victim=True, 
-                       save_victim_traj=SAVE_VICTIM_TRAJ)
+                       save_victim_traj=SAVE_VICTIM_TRAJ,
+                       vic_agt_id=VIC_AGT_ID)
 
         victim_train(venv, TRAINING_ITER, CHECKPOINT_INTERVAL, LOG_INTERVAL, CALLBACK_KEY, CALLBACK_MUL, logger, GAME_SEED)
         model.save(os.path.join(out_dir, env_name.split('/')[1]))
