@@ -333,7 +333,7 @@ class MlpPolicyValue(Policy):
 
 
 class LSTMPolicy(Policy):
-    def __init__(self, scope, *, ob_space, ac_space, hiddens, n_batch_train=1,
+    def __init__(self, scope, *, ob_space, ac_space, hiddens, rate=0.0, n_batch_train=1,
                  n_envs=1, sess=None, reuse=False, normalize=False):
         self.sess = sess
         self.recurrent = True
@@ -386,7 +386,7 @@ class LSTMPolicy(Policy):
             for hidden in hiddens[:-1]:
                 last_out = tf.contrib.layers.fully_connected(last_out, hidden)
                 self.policy_ff_acts = last_out
-
+                last_out = tf.nn.dropout(last_out, rate=rate) 
             cell = tf.contrib.rnn.BasicLSTMCell(hiddens[-1], reuse=reuse)
             size = cell.state_size
             self.zero_state.append(np.zeros(size.c, dtype=np.float32))
