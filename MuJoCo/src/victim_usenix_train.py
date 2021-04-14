@@ -26,15 +26,15 @@ parser.add_argument("--env", type=int, default=2)
 # random seed
 parser.add_argument("--seed", type=int, default=0)
 # number of game environment. should be divisible by NBATCHES if using a LSTM policy
-parser.add_argument("--n_games", type=int, default=1) # N_GAME = 8
+parser.add_argument("--n_games", type=int, default=8) # N_GAME = 8
 # which victim agent to use
 parser.add_argument("--vic_agt_id", type=int, default=1)
 
 # adversarial agent path
-parser.add_argument("--adv_path", type=str, default='/home/xkw5132/wuxian/rl_newloss/MuJoCo/adv-agent/our_attack/you/model.pkl')
+parser.add_argument("--adv_path", type=str, default='../adv-agent/usenix/you/model.pkl')
 parser.add_argument("--adv_ismlp", type=bool, default=True)
 # adversarial agent's observation norm mean / variance path
-parser.add_argument("--adv_obs_normpath", type=str, default='/home/xkw5132/wuxian/rl_newloss/MuJoCo/adv-agent/our_attack/you/obs_rms.pkl')
+parser.add_argument("--adv_obs_normpath", type=str, default='../adv-agent/usenix/you/obs_rms.pkl')
 # victim agent network
 parser.add_argument("--vic_net", type=str, default='MLP')
 
@@ -46,12 +46,12 @@ parser.add_argument("--nsteps", type=int, default=2048)
 
 parser.add_argument('--x_method', type=str, default='grad')
 
-parser.add_argument('--mimic_model_path', type=str, default='/home/xkw5132/wuxian/rl_newloss/MuJoCo/agent')
+parser.add_argument('--mimic_model_path', type=str, default='../retrain-surrogate_agent/you')
 
 # whether use zoo_utils's policy normalization when retrain victim
 parser.add_argument("--load_victim_norm", type=bool, default=True)
 # percentage of playing with adv-agent during mix-retraining
-parser.add_argument("--mix_ratio", type=float, default=0.8)
+parser.add_argument("--mix_ratio", type=float, default=0.5)
 
 # load pretrained agent
 parser.add_argument("--load", type=int, default=0)
