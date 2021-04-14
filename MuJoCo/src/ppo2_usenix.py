@@ -599,12 +599,12 @@ class USENIX_PPO2(ActorCriticRLModel):
                         print("Model saved at: {}".format(model_file_name))
                         self.save(model_file_name)
 
+            if self.save_victim_traj:
+                obs_numpy = np.vstack(obs_list)
+                act_numpy = np.vstack(act_list)
 
-            obs_numpy = np.vstack(obs_list)
-            act_numpy = np.vstack(act_list)
-
-            with open('../saved/trajectory.pkl', 'ab+') as f:
-                pkl.dump([obs_numpy, act_numpy], f, protocol=2)
+                with open('../saved/trajectory.pkl', 'ab+') as f:
+                    pkl.dump([obs_numpy, act_numpy], f, protocol=2)
 
             return self
 
