@@ -12,7 +12,7 @@ The requirements of each game are listed in ```requirements.txt``` under the cor
 Detailed instructions about the environment configuration and agent training can be found in ```run.md ```.
 
 ## Contact
-Wenbo Guo: ```wzg13@ist.psu.psu```.
+Wenbo Guo: ```wzg13@ist.psu.edu```.
 
 ## Citation
 ```
