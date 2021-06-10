@@ -68,7 +68,7 @@ Playing an opponent agent with a masked victim:
 
 
 ## More results on MuJoCo games:
-Here, we also compare our attack with the newly existing attack which is published in USENIX Security 2021. For more information, please refer to the doc ```https://tinyurl.com/v8vdkhs```. 
+Here, we also compare our attack with the newly existing attack which is published in USENIX Security 2021. For more details, please refer to the doc ```https://tinyurl.com/v8vdkhs```. 
 
 # Reproducing the results on the StarCraft II Game:
 
