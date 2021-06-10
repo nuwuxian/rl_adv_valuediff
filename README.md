@@ -1,3 +1,20 @@
+# RL_Adv_Valuediff
+
+This repo is about adversarial attacks against reinforcement learning in a two-player competitive games. To be sepcific, we 
+design the objective function of our adversarial learning  algorithm such  that  the  agent  trained  by  our  attack could guarantee to increase the expected reward difference between the adversary and victim monotonically.
+
+More details can be found in our paper:
+
+```
+Adversarial Policy Learning in Two-player Competitive Games
+Wenbo Guo, Xian Wu, Sui Huang, Xinyu Xing 
+In ICML 2021
+```
+
+The repo consists the following two parts:  
+  - Adversarial attack and defense in MuJoCo Games.  
+  - Adversarial attack and defense in StarCraft II Game.
+
 # Reproducing the results on the MuJoCo Games:
 
 ## Install Mujoco environment: 
@@ -48,6 +65,10 @@ Playing an opponent agent with a masked victim:
   - Run ```python generate_activations.py --env <env_id> --opp_path <path-to-the-opponent-model> --vic_path <path-to-the-victim-model> --norm_path <path-to-the-opponent-observation-normalizations> --opp_type <type-of-the-opponent> --out_dir <output folder>``` to collect the victim activations when playing against different opponents. 
   
   - To generate the t-SNE visualization results, run ```python plot_tsne.py --dir <path-to-victim-activations> --output_dir <output-folder>```. To generate the GMM visualization results, run ```python plot_gmm.py --dir <path-to-victim-activations> --output_dir <output-folder>```.
+
+
+## More results on MuJoCo games:
+Here, we also compare our attack with the newly exisiting attack which is published in USENIX Security 2021. For more information, please refer to the doc ```https://tinyurl.com/v8vdkhs```. 
 
 # Reproducing the results on the StarCraft II Game:
 
@@ -107,4 +128,3 @@ Run ```python -m bin.evaluate_vs_rl.py --model_path=<path-of-the-opponent-model>
   - Run ``` python -m bin.generate_activations.py --model_path=<path-of-the-opponent-model> --model_type=<type-of-the-opponent> --victim_path=<path-of-the-victim-model> --out_path=<output folder>``` to collect the victim activations when playing against different opponents.
   
   - To generate the t-SNE visualization results, run ```python plot_tsne.py --dir <path-to-victim-activations> --output_dir <output-folder>```. To generate the GMM visualization results, run ```python plot_gmm.py --dir <path-to-victim-activations> --output_dir <output-folder>```.
-
