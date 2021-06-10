@@ -1,4 +1,4 @@
-# RL_Adv_Valuediff
+# RL_adv_valuediff
 
 This repo is about adversarial attacks against reinforcement learning in two-player competitive games. To be specific, we 
 design the objective function of our adversarial learning  algorithm such  that  the  agent  trained  by  our  attack could guarantee to increase the expected reward difference between the adversary and victim monotonically.
