@@ -8,13 +8,13 @@ We propose a novel adversarial attack against deep reinforcement learning polici
 ## Requirement
 The requirements of each game are listed in ```requirements.txt``` under the corresponding folder. 
 
-# Code structure and instructions 
+## Code structure and instructions 
 Detailed instructions about the environment configuration and agent training can be found in ```run.md ```.
 
-# Contact
+## Contact
 Wenbo Guo: ```wzg13@ist.psu.psu```.
 
-# Citation
+## Citation
 ```
 W.Guo, X. Wu, S. Huang, X. Xing, "Adversarial Policy Learning in Two-player Competitive Games", In ICML 2021.
 ```
