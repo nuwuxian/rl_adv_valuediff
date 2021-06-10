@@ -1,6 +1,6 @@
 # RL_Adv_Valuediff
 
-This repo is about adversarial attacks against reinforcement learning in a two-player competitive games. To be sepcific, we 
+This repo is about adversarial attacks against reinforcement learning in two-player competitive games. To be sepcific, we 
 design the objective function of our adversarial learning  algorithm such  that  the  agent  trained  by  our  attack could guarantee to increase the expected reward difference between the adversary and victim monotonically.
 
 More details can be found in our paper:
@@ -68,7 +68,7 @@ Playing an opponent agent with a masked victim:
 
 
 ## More results on MuJoCo games:
-Here, we also compare our attack with the newly exisiting attack which is published in USENIX Security 2021. For more information, please refer to the doc ```https://tinyurl.com/v8vdkhs```. 
+Here, we also compare our attack with the newly existing attack which is published in USENIX Security 2021. For more information, please refer to the doc ```https://tinyurl.com/v8vdkhs```. 
 
 # Reproducing the results on the StarCraft II Game:
 
