@@ -50,8 +50,8 @@ Playing an opponent agent with a masked victim:
   - To generate the t-SNE visualization results, run ```python plot_tsne.py --dir <path-to-victim-activations> --output_dir <output-folder>```. To generate the GMM visualization results, run ```python plot_gmm.py --dir <path-to-victim-activations> --output_dir <output-folder>```.
 
 
-## More results on MuJoCo games:
-Here, we also compare our attack with the newly existing attack which is published in USENIX Security 2021. For more details, please refer to the doc ```https://tinyurl.com/v8vdkhs```. 
+## Comparison with another recently published attack on MuJoCo games:
+We also compare our proposed attack with another recently published attack and show the results in the following doc: ().
 
 # StarCraft II Game:
 
