@@ -51,7 +51,7 @@ Playing an opponent agent with a masked victim:
 
 
 ## Comparison with another recently published attack on MuJoCo games:
-We also compare our proposed attack with another recently published attack and show the results in the following doc: ().
+We also compare our proposed attack with another recently published attack and show the results in the following doc: (https://docs.google.com/document/d/1YHfKyw2uCYdvVjEDmgSUW0xY4wt9rO2eJt_AwcknBkk/edit?usp=sharing).
 
 # StarCraft II Game:
 
