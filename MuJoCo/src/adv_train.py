@@ -89,21 +89,21 @@ VIC_AGT_ID = args.vic_agt_id
 # 0: constant
 # 1: linear
 
-REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 0.5, 'reward_contact': 1, 'reward_survive': 0.5,},
-                                'sparse': {'reward_remaining': 0.01}},
-                   'anneal_frac': 0.01, 'anneal_type': 0}
+# REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 0.5, 'reward_contact': 1, 'reward_survive': 0.5,},
+#                                 'sparse': {'reward_remaining': 0.01}},
+#                    'anneal_frac': 0.01, 'anneal_type': 0}
 
-REW_SHAPE_PARAMS_ADV = {'weights': {'dense': {'reward_move': 0.5, 'reward_contact': 1, 'reward_survive': 0.5,},
-                                'sparse': {'reward_remaining': 0.01}},
-                   'anneal_frac': 0, 'anneal_type': 0}
+# REW_SHAPE_PARAMS_ADV = {'weights': {'dense': {'reward_move': 0.5, 'reward_contact': 1, 'reward_survive': 0.5,},
+#                                 'sparse': {'reward_remaining': 0.01}},
+#                    'anneal_frac': 0, 'anneal_type': 0}
 
 ## sumoants
 # REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 1}, 'sparse': {'reward_remaining': 0.01}},
 #                    'anneal_frac': 0.1}
 
-## sumohuman and you shall not pass
-# REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 0.1}, 'sparse': {'reward_remaining': 0.01}},
-#                     'anneal_frac': 0}
+## sumohuman, kickanddefend and you shall not pass
+REW_SHAPE_PARAMS = {'weights': {'dense': {'reward_move': 0.1}, 'sparse': {'reward_remaining': 0.01}},
+                    'anneal_frac': 0}
 
 # reward discount factor
 GAMMA = 0.99
