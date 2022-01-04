@@ -1,5 +1,5 @@
 # MuJoCo Games:
-The following enviroment is tested on MuJoCo version 1.3.1, please make sure intall MuJoCo 1.3.1 first. 
+The following enviroment is tested on MuJoCo version 1.3.1, please make sure install MuJoCo 1.3.1 first. 
 ## Install Mujoco environment: 
   - Install conda3 on your machine (https://www.anaconda.com/products/individual);  
   - Run ```conda create -n mujoco python==3.6``` to create a virtual environment (python 3.7 also works if python 3.6 is not available);  
