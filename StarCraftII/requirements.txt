@@ -1,4 +1,4 @@
-tensorflow==1.14.0
+tensorflow==2.6.4
 gym==0.10.5
 joblib
 pyzmq
